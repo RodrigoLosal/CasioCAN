@@ -2,17 +2,32 @@
 #include "app_bsp.h"
 #include <stdio.h>
 
-#define IDLE 1
+#define IDLE    1
 #define MESSAGE 2
-#define TIME 3
-#define DATE  4
-#define ALARM 5
-#define ERROR 6
-#define OK 7
+#define TIME    3
+#define DATE    4
+#define ALARM   5
+#define ERROR   6
+#define OK      7
+
+#define JAN 1
+#define FEB 2
+#define MAR 3
+#define APR 4
+#define MAY 5
+#define JUN 6
+#define JUL 7
+#define AUG 8
+#define SEP 9
+#define OCT 10
+#define NOV 11
+#define DEC 12
 
 uint8_t HexToBCD(uint8_t Data);
 uint8_t TimeValidaton( uint8_t *Data );
 uint8_t DateValidaton( uint8_t *Data );
+uint8_t WeekDay( uint8_t *Data );
+uint16_t YearDay(uint8_t *Data );
 uint8_t AlarmValidaton( uint8_t *Data );
 static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size );
 static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size );
@@ -21,6 +36,7 @@ FDCAN_HandleTypeDef     CANHandler;
 FDCAN_RxHeaderTypeDef   CANRxHeader;
 FDCAN_TxHeaderTypeDef   CANTxHeader;
 FDCAN_FilterTypeDef     CANFilter;
+APP_MsgTypeDef          DataStorage;
 
 uint8_t RxData[8];
 uint8_t MessageData[7];
@@ -96,9 +112,9 @@ void Serial_Task( void )
         case TIME:
             printf("Vas a configurar hora.\n\r");
             if( TimeValidaton( MessageData ) ) {
-                printf("Hora: %u\n\r", HexToBCD( MessageData[1] ) );
-                printf("Minutos: %u\n\r", HexToBCD( MessageData[2] ) );
-                printf("Segundos: %u\n\r", HexToBCD( MessageData[3] ) );
+                printf("Hora: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
+                printf("Minutos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
+                printf("Segundos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_sec );
                 State = OK;
             }
             else {
@@ -109,10 +125,13 @@ void Serial_Task( void )
         case DATE:
             printf("Vas a configurar fecha.\n\r");
             if( DateValidaton( MessageData ) ) {
-                printf("Dia: %u\n\r", HexToBCD( MessageData[1]) );
-                printf("Mes: %u\n\r", HexToBCD( MessageData[2]) );
-                printf("Anio: %u\n\r", HexToBCD( MessageData[3]) );
-                printf("%u\n\r", HexToBCD( MessageData[4]) );
+                printf("Dia: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mday );
+                printf("Mes: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mon );
+                printf("Anio: %u\n\r", ( unsigned int ) DataStorage.tm.tm_year );
+                DataStorage.tm.tm_wday = WeekDay( MessageData );
+                printf("Weekday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_wday );
+                DataStorage.tm.tm_yday = YearDay( MessageData );
+                printf("Yearday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_yday );
                 State = OK;
             }
             else {
@@ -123,8 +142,8 @@ void Serial_Task( void )
         case ALARM:
             printf("Vas a configurar alarma.\n\r");
             if( AlarmValidaton( MessageData ) ) {
-                printf("Hora de alarma: %u\n\r", HexToBCD( MessageData[1]) );
-                printf("Minutos de alarma: %u\n\r", HexToBCD( MessageData[2]) );
+                printf("Hora de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
+                printf("Minutos de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
                 State = OK;
             }
             else {
@@ -134,13 +153,15 @@ void Serial_Task( void )
 
         case ERROR:
             printf("ERROR.\n\r");
-            CanTp_SingleFrameTx( &MessageERROR, 2 );
+            DataStorage.msg = MessageERROR;
+            CanTp_SingleFrameTx( &DataStorage.msg, 2 );
             State = IDLE;
         break;
 
         case OK:
             printf("OK.\n\r");
-            CanTp_SingleFrameTx( &MessageOK, 2 );
+            DataStorage.msg = MessageOK;
+            CanTp_SingleFrameTx( &DataStorage.msg, 2 );
             State = IDLE;
         break;
     }
@@ -167,6 +188,9 @@ uint8_t TimeValidaton( uint8_t *Data ) {
     uint8_t Seconds = HexToBCD( *( Data + 3 ) );
 
     if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60 && Seconds >= 0 && Seconds < 60) {
+        DataStorage.tm.tm_hour = Hours;
+        DataStorage.tm.tm_min = Minutes;
+        DataStorage.tm.tm_sec = Seconds;
         Flag = 1;
     }
     else {
@@ -182,11 +206,14 @@ uint8_t DateValidaton( uint8_t *Data ) {
     uint16_t Year = ( HexToBCD( *( Data + 3 ) ) * 100 ) + HexToBCD( *( Data + 4 ) );
 
     if( Year > 1900 && Year < 2100 ) {
+        DataStorage.tm.tm_year = Year;
 
-        if( Month >= 1 && Month <= 12 ) {
+        if( Month >= JAN && Month <= DEC ) {
+            DataStorage.tm.tm_mon = Month;
 
-            if( Month == 1 || Month == 3 || Month == 5 || Month == 7 || Month == 8 || Month == 10 || Month == 12 ) {
+            if( Month == JAN || Month == MAR || Month == MAY || Month == JUL || Month == AUG || Month == OCT || Month == DEC ) {
                 if( Day >= 1 && Day <= 31 ) {
+                    DataStorage.tm.tm_mday = Day;
                     Flag = 1;
                 }
                 else {
@@ -194,8 +221,9 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            else if( Month == 4 || Month == 6 || Month == 9 || Month == 11 ) {
+            else if( Month == APR || Month == JUN || Month == SEP || Month == NOV ) {
                 if( Day >= 1 && Day <= 30 ) {
+                    DataStorage.tm.tm_mday = Day;
                     Flag = 1;
                 }
                 else {
@@ -203,8 +231,9 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            else if( ( Year % 4 ) == 0 && Month == 2 ) {
+            else if( ( Year % 4 ) == 0 && Month == FEB ) {
                 if( Day >=1 && Day <= 29 ) {
+                    DataStorage.tm.tm_mday = Day;
                     Flag = 1;
                 }
                 else {
@@ -212,8 +241,9 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            else if ( Month == 2 ) {
+            else if ( Month == FEB ) {
                 if( Day >=1 && Day <=28 ) {
+                    DataStorage.tm.tm_mday = Day;
                     Flag = 1;
                 }
                 else {
@@ -231,17 +261,105 @@ uint8_t DateValidaton( uint8_t *Data ) {
     return Flag;
 }
 
+uint8_t WeekDay( uint8_t *Data ) {
+    uint8_t Day = HexToBCD( *( Data + 1 ) );
+    uint8_t Month = HexToBCD( *( Data + 2 ) );
+    uint16_t Year = ( HexToBCD( *( Data + 3 ) ) * 100 ) + HexToBCD( *( Data + 4 ) );
+    uint16_t k, j , h;
+
+    if (Month == JAN) {
+        Month = 13;
+        Year--;
+    }
+    if (Month == FEB) {
+        Month = 14;
+        Year--;
+    }
+    k = Year % 100;
+    j = Year / 100;
+    h = ( Day + 13 * ( Month + 1 ) / 5 + k + k / 4 + j / 4 + 5 * j ) % 7;
+
+    return h;
+}
+
+uint16_t YearDay(uint8_t *Data ) {
+    uint8_t Day = HexToBCD( *( Data + 1 ) );
+    uint8_t Month = HexToBCD( *( Data + 2 ) );
+    uint16_t Year = ( HexToBCD( *( Data + 3 ) ) * 100 ) + HexToBCD( *( Data + 4 ) );
+    uint16_t YearDay;
+
+    switch( Month ) {
+        case JAN:
+            YearDay = Day;
+        break;
+
+        case FEB:
+            YearDay = Day + 31;
+        break;
+
+        case MAR:
+            YearDay = Day + 31 + 28;
+        break;
+
+        case APR:
+            YearDay = Day + 31 + 28 + 31;
+        break;
+
+        case MAY:
+            YearDay = Day + 31 + 28 + 31 + 30;
+        break;
+
+        case JUN:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31;
+        break;
+
+        case JUL:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30;
+        break;
+
+        case AUG:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30 + 31;
+        break;
+
+        case SEP:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30 + 31 + 31;
+        break;
+
+        case OCT:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30 + 31 + 31 + 30;
+        break;
+
+        case NOV:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30 + 31 + 31 + 30 + 31;
+        break;
+
+        case DEC:
+            YearDay = Day + 31 + 28 + 31 + 30 + 31 +30 + 31 + 31 + 30 + 31 + 30;
+        break;
+    }
+
+    if( ( Year % 4 ) == 0 && Month > FEB) {
+        YearDay += 1;
+    }
+
+    DataStorage.tm.tm_yday = YearDay;
+
+    return YearDay;
+}
+
 uint8_t AlarmValidaton( uint8_t *Data ) {
     uint8_t Flag;
     uint8_t Hours = HexToBCD( *( Data + 1 ) );
     uint8_t Minutes = HexToBCD( *( Data + 2 ) );
 
-        if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60) {
-            Flag = 1;
-        }
-        else {
-            Flag = 0;
-        }
+    if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60) {
+        DataStorage.tm.tm_hour = Hours;
+        DataStorage.tm.tm_min = Minutes;
+        Flag = 1;
+    }
+    else {
+        Flag = 0;
+    }
 
     return Flag;
 }
