@@ -105,7 +105,7 @@ void Serial_Task( void )
                 State = DATE;
             }
             else if( MessageData[0] == SERIAL_MSG_ALARM ) {
-                DataStorage.msg = SERIAL_MSG_DATE;
+                DataStorage.msg = SERIAL_MSG_ALARM;
                 State = ALARM;
             }
             else {
@@ -148,8 +148,8 @@ void Serial_Task( void )
         case ALARM:
             //printf("Vas a configurar alarma.\n\r");
             if( AlarmValidaton( MessageData ) ) {
-                //printf("Hora de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
-                //printf("Minutos de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
+                printf("Hora de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour_a );
+                printf("Minutos de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min_a );
                 State = OK;
             }
             else {

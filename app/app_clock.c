@@ -1,15 +1,11 @@
 #include "app_clock.h"
 
-/*Define states for State Machine---------*/
-
 #define MESSAGE     00
 #define ALARM       10
 #define DATE        11
 #define TIME        12
 #define CLEAR       20
 #define PRINT       30
-
-/*----------------------------------------*/
 
 RTC_HandleTypeDef RtcHandler = {0};
 APP_MsgTypeDef nullMessageStruct = {0};
@@ -128,9 +124,6 @@ void Clock_Task( void )
                 printf("Alarm: %02d:%02d\r\n", sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes);
             }
             state = MESSAGE;
-        break;
-
-        default:
         break;
     }
 }
