@@ -38,6 +38,7 @@ FDCAN_RxHeaderTypeDef   CANRxHeader;
 FDCAN_TxHeaderTypeDef   CANTxHeader;
 FDCAN_FilterTypeDef     CANFilter;
 APP_MsgTypeDef          DataStorage;
+APP_Messages            MessageType;
 
 uint8_t RxData[8];
 uint8_t MessageData[7];
@@ -96,13 +97,13 @@ void Serial_Task( void )
 
         case MESSAGE:
             printf("Entramos a MESSAGE.\n\r");
-            if( MessageData[0] == 1 ) {
+            if( MessageData[0] == SERIAL_MSG_TIME ) {
                 State = TIME;
             }
-            else if( MessageData[0] == 2 ) {
+            else if( MessageData[0] == SERIAL_MSG_DATE ) {
                 State = DATE;
             }
-            else if( MessageData[0] == 3 ) {
+            else if( MessageData[0] == SERIAL_MSG_ALARM ) {
                 State = ALARM;
             }
             else {

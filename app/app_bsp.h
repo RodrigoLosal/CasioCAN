@@ -6,6 +6,14 @@
     #include "stm32g0xx_hal_fdcan.h"
     #include <stdint.h>
 
+typedef enum
+{
+    SERIAL_MSG_NONE = 0,
+    SERIAL_MSG_TIME,
+    SERIAL_MSG_DATE,
+    SERIAL_MSG_ALARM
+} APP_Messages;
+
 typedef struct _APP_TmTypeDef 
 {
     uint32_t tm_sec;         /* seconds,  range 0 to 59          */
