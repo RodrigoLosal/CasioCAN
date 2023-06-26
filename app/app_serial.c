@@ -10,11 +10,12 @@
 #define ERROR 6
 #define OK 7
 
-void    HexToBCD(uint8_t *Data);
+uint8_t HexToBCD(uint8_t Data);
 uint8_t TimeValidaton( uint8_t *Data );
 uint8_t DateValidaton( uint8_t *Data );
 uint8_t AlarmValidaton( uint8_t *Data );
 static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size );
+static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size );
 
 FDCAN_HandleTypeDef     CANHandler;
 FDCAN_RxHeaderTypeDef   CANRxHeader;
@@ -22,22 +23,24 @@ FDCAN_TxHeaderTypeDef   CANTxHeader;
 FDCAN_FilterTypeDef     CANFilter;
 
 uint8_t RxData[8];
+uint8_t MessageData[7];
+uint8_t MessageSize;
 uint8_t Message = 0;
 
 uint8_t State = IDLE;
 
 void Serial_Init( void )
 {
-    CANHandler.Instance                 = FDCAN1;
-    CANHandler.Init.Mode                = FDCAN_MODE_NORMAL;
-    CANHandler.Init.FrameFormat         = FDCAN_FRAME_CLASSIC;
-    CANHandler.Init.ClockDivider        = FDCAN_CLOCK_DIV1;
-    CANHandler.Init.TxFifoQueueMode     = FDCAN_TX_FIFO_OPERATION;
-    CANHandler.Init.NominalPrescaler    = 10;
-    CANHandler.Init.NominalSyncJumpWidth = 1;
-    CANHandler.Init.NominalTimeSeg1     = 11;
-    CANHandler.Init.NominalTimeSeg2     = 4;
-    CANHandler.Init.StdFiltersNbr       = 1;
+    CANHandler.Instance                     = FDCAN1;
+    CANHandler.Init.Mode                    = FDCAN_MODE_NORMAL;
+    CANHandler.Init.FrameFormat             = FDCAN_FRAME_CLASSIC;
+    CANHandler.Init.ClockDivider            = FDCAN_CLOCK_DIV1;
+    CANHandler.Init.TxFifoQueueMode         = FDCAN_TX_FIFO_OPERATION;
+    CANHandler.Init.NominalPrescaler        = 10;
+    CANHandler.Init.NominalSyncJumpWidth    = 1;
+    CANHandler.Init.NominalTimeSeg1         = 11;
+    CANHandler.Init.NominalTimeSeg2         = 4;
+    CANHandler.Init.StdFiltersNbr           = 1;
     HAL_FDCAN_Init( &CANHandler);
 
     CANTxHeader.IdType      = FDCAN_STANDARD_ID;
@@ -69,21 +72,20 @@ void Serial_Task( void )
 
     switch( State ) {
         case IDLE:
-            if( Message ) {
-                Message = 0;
+            if( CanTp_SingleFrameRx( MessageData, &MessageSize ) ) {
                 State = MESSAGE;
             }
         break;
 
         case MESSAGE:
             printf("Entramos a MESSAGE.\n\r");
-            if( RxData[0] == 0x08 && RxData[1] == 0x01 && RxData[6] == 0x00 && RxData[7] == 0x00) {
+            if( MessageData[0] == 1 ) {
                 State = TIME;
             }
-            else if( RxData[0] == 0x08 && RxData[1] == 0x02 && RxData[6] == 0x00 && RxData[7] == 0x00) {
+            else if( MessageData[0] == 2 ) {
                 State = DATE;
             }
-            else if( RxData[0] == 0x08 && RxData[1] == 0x03 && RxData[6] == 0x00 && RxData[7] == 0x00) {
+            else if( MessageData[0] == 3 ) {
                 State = ALARM;
             }
             else {
@@ -93,11 +95,10 @@ void Serial_Task( void )
 
         case TIME:
             printf("Vas a configurar hora.\n\r");
-            HexToBCD( RxData );
-            if( TimeValidaton( RxData ) ) {
-                printf("Hora: %u\n\r", RxData[2]);
-                printf("Minutos: %u\n\r", RxData[3]);
-                printf("Segundos: %u\n\r", RxData[4]);
+            if( TimeValidaton( MessageData ) ) {
+                printf("Hora: %u\n\r", HexToBCD( MessageData[1] ) );
+                printf("Minutos: %u\n\r", HexToBCD( MessageData[2] ) );
+                printf("Segundos: %u\n\r", HexToBCD( MessageData[3] ) );
                 State = OK;
             }
             else {
@@ -107,12 +108,11 @@ void Serial_Task( void )
 
         case DATE:
             printf("Vas a configurar fecha.\n\r");
-            HexToBCD( RxData );
-            if( DateValidaton( RxData ) ) {
-                printf("Dia: %u\n\r", RxData[2]);
-                printf("Mes: %u\n\r", RxData[3]);
-                printf("Anio: %u\n\r", RxData[4]);
-                printf("%u\n\r", RxData[5]);
+            if( DateValidaton( MessageData ) ) {
+                printf("Dia: %u\n\r", HexToBCD( MessageData[1]) );
+                printf("Mes: %u\n\r", HexToBCD( MessageData[2]) );
+                printf("Anio: %u\n\r", HexToBCD( MessageData[3]) );
+                printf("%u\n\r", HexToBCD( MessageData[4]) );
                 State = OK;
             }
             else {
@@ -122,10 +122,9 @@ void Serial_Task( void )
 
         case ALARM:
             printf("Vas a configurar alarma.\n\r");
-            HexToBCD( RxData );
-            if( AlarmValidaton( RxData ) ) {
-                printf("Hora de alarma: %u\n\r", RxData[2]);
-                printf("Minutos de alarma: %u\n\r", RxData[3]);
+            if( AlarmValidaton( MessageData ) ) {
+                printf("Hora de alarma: %u\n\r", HexToBCD( MessageData[1]) );
+                printf("Minutos de alarma: %u\n\r", HexToBCD( MessageData[2]) );
                 State = OK;
             }
             else {
@@ -153,17 +152,19 @@ void HAL_FDCAN_RxFifo0Callback( FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs
   Message = 1;
 }
 
-void HexToBCD( uint8_t *Data ) {
-    for(uint8_t i = 0; i < 8; i++ ){
-        Data[i] = ( ( ( Data[i] >> 4 ) * 10 ) + ( Data[i] & 0x0F ) );
-    }
+uint8_t HexToBCD( uint8_t Data ) {
+    uint8_t DataBCD;
+
+    DataBCD = ( ( ( Data >> 4 ) * 10 ) + ( Data & 0x0F ) );
+
+    return DataBCD;
 }
 
 uint8_t TimeValidaton( uint8_t *Data ) {
     uint8_t Flag;
-    uint8_t Hours = *( Data + 2 );
-    uint8_t Minutes = *( Data + 3 );
-    uint8_t Seconds = *( Data + 4 );
+    uint8_t Hours = HexToBCD( *( Data + 1 ) );
+    uint8_t Minutes = HexToBCD( *( Data + 2 ) );
+    uint8_t Seconds = HexToBCD( *( Data + 3 ) );
 
     if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60 && Seconds >= 0 && Seconds < 60) {
         Flag = 1;
@@ -176,9 +177,9 @@ uint8_t TimeValidaton( uint8_t *Data ) {
 
 uint8_t DateValidaton( uint8_t *Data ) {
     uint8_t Flag;
-    uint8_t Day = *( Data + 2 );
-    uint8_t Month = *( Data + 3 );
-    uint16_t Year = ( *( Data + 4 ) * 100 ) + *( Data + 5 );
+    uint8_t Day = HexToBCD( *( Data + 1 ) );
+    uint8_t Month = HexToBCD( *( Data + 2 ) );
+    uint16_t Year = ( HexToBCD( *( Data + 3 ) ) * 100 ) + HexToBCD( *( Data + 4 ) );
 
     if( Year > 1900 && Year < 2100 ) {
 
@@ -193,7 +194,7 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            if( Month == 4 || Month == 6 || Month == 9 || Month == 11 ) {
+            else if( Month == 4 || Month == 6 || Month == 9 || Month == 11 ) {
                 if( Day >= 1 && Day <= 30 ) {
                     Flag = 1;
                 }
@@ -202,7 +203,7 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            if( ( Year % 4 ) == 0 && Month == 2 ) {
+            else if( ( Year % 4 ) == 0 && Month == 2 ) {
                 if( Day >=1 && Day <= 29 ) {
                     Flag = 1;
                 }
@@ -211,7 +212,7 @@ uint8_t DateValidaton( uint8_t *Data ) {
                 }
             }
 
-            else {
+            else if ( Month == 2 ) {
                 if( Day >=1 && Day <=28 ) {
                     Flag = 1;
                 }
@@ -232,20 +233,15 @@ uint8_t DateValidaton( uint8_t *Data ) {
 
 uint8_t AlarmValidaton( uint8_t *Data ) {
     uint8_t Flag;
-    uint8_t Hours = *( Data + 2 );
-    uint8_t Minutes = *( Data + 3 );
+    uint8_t Hours = HexToBCD( *( Data + 1 ) );
+    uint8_t Minutes = HexToBCD( *( Data + 2 ) );
 
-    if( *( Data + 4 ) == 0 && *( Data + 5 ) == 0 ) {
         if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60) {
             Flag = 1;
         }
         else {
             Flag = 0;
         }
-    }
-    else {
-        Flag = 0;
-    }
 
     return Flag;
 }
@@ -261,4 +257,39 @@ static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size ) {
     }
 
     HAL_FDCAN_AddMessageToTxFifoQ( &CANHandler, &CANTxHeader, MessageOutput );
+}
+
+static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size ) {
+    uint8_t CeroCounter = 0;
+    uint8_t Flag;
+
+    if( Message ) {
+        Message = 0;
+
+        *( Size ) = RxData[0];
+
+        for( uint8_t i = 0; i < 7; i++) {
+            *( Data + i ) = RxData[i + 1];
+            if ( RxData[i + 1] == 0) {
+                CeroCounter++;
+            }
+        }
+
+        if( *( Size ) < 1 || *( Size ) > 8 ) {
+            Flag = 0;
+        }
+        else if( CeroCounter == 7 ) {
+            Flag = 0;
+        }
+        else {
+            Flag = 1;
+        }
+    }
+    else {
+        Flag = 0;
+    }
+    
+    CeroCounter = 0;
+
+    return Flag;
 }
