@@ -1,6 +1,4 @@
 #include "app_serial.h"
-#include "app_bsp.h"
-#include <stdio.h>
 
 #define IDLE    1
 #define MESSAGE 2
@@ -37,6 +35,7 @@ FDCAN_HandleTypeDef     CANHandler;
 FDCAN_RxHeaderTypeDef   CANRxHeader;
 FDCAN_TxHeaderTypeDef   CANTxHeader;
 FDCAN_FilterTypeDef     CANFilter;
+
 APP_MsgTypeDef          DataStorage;
 APP_Messages            MessageType;
 
@@ -96,14 +95,17 @@ void Serial_Task( void )
         break;
 
         case MESSAGE:
-            printf("Entramos a MESSAGE.\n\r");
+            //printf("Entramos a MESSAGE.\n\r");
             if( MessageData[0] == SERIAL_MSG_TIME ) {
+                DataStorage.msg = SERIAL_MSG_TIME;
                 State = TIME;
             }
             else if( MessageData[0] == SERIAL_MSG_DATE ) {
+                DataStorage.msg = SERIAL_MSG_DATE;
                 State = DATE;
             }
             else if( MessageData[0] == SERIAL_MSG_ALARM ) {
+                DataStorage.msg = SERIAL_MSG_DATE;
                 State = ALARM;
             }
             else {
@@ -112,11 +114,11 @@ void Serial_Task( void )
         break;
 
         case TIME:
-            printf("Vas a configurar hora.\n\r");
+            //printf("Vas a configurar hora.\n\r");
             if( TimeValidaton( MessageData ) ) {
-                printf("Hora: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
-                printf("Minutos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
-                printf("Segundos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_sec );
+                //printf("Hora: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
+                //printf("Minutos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
+                //printf("Segundos: %u\n\r", ( unsigned int ) DataStorage.tm.tm_sec );
                 State = OK;
             }
             else {
@@ -125,17 +127,17 @@ void Serial_Task( void )
         break;
 
         case DATE:
-            printf("Vas a configurar fecha.\n\r");
+            //printf("Vas a configurar fecha.\n\r");
             if( DateValidaton( MessageData ) ) {
-                printf("Dia: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mday );
-                printf("Mes: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mon );
-                printf("Anio: %u\n\r", ( unsigned int ) DataStorage.tm.tm_year );
+                //printf("Dia: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mday );
+                //printf("Mes: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mon );
+                //printf("Anio: %u\n\r", ( unsigned int ) DataStorage.tm.tm_year );
                 WeekDay( MessageData );
-                printf("Weekday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_wday );
+                //printf("Weekday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_wday );
                 YearDay( MessageData );
-                printf("Yearday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_yday );
+                //printf("Yearday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_yday );
                 DaylightSavingTime( MessageData );
-                printf("Daylight Saving Time: %u\n\r", ( unsigned int ) DataStorage.tm.tm_isdst );
+                //printf("Daylight Saving Time: %u\n\r", ( unsigned int ) DataStorage.tm.tm_isdst );
                 State = OK;
             }
             else {
@@ -144,10 +146,10 @@ void Serial_Task( void )
         break;
 
         case ALARM:
-            printf("Vas a configurar alarma.\n\r");
+            //printf("Vas a configurar alarma.\n\r");
             if( AlarmValidaton( MessageData ) ) {
-                printf("Hora de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
-                printf("Minutos de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
+                //printf("Hora de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_hour );
+                //printf("Minutos de alarma: %u\n\r", ( unsigned int ) DataStorage.tm.tm_min );
                 State = OK;
             }
             else {
@@ -156,16 +158,18 @@ void Serial_Task( void )
         break;
 
         case ERROR:
-            printf("ERROR.\n\r");
-            DataStorage.msg = MessageERROR;
-            CanTp_SingleFrameTx( &DataStorage.msg, 2 );
+            //printf("ERROR.\n\r");
+            //DataStorage.msg = MessageERROR;
+            //CanTp_SingleFrameTx( &DataStorage.msg, 2 );
+            CanTp_SingleFrameTx( &MessageERROR, 2 );
             State = IDLE;
         break;
 
         case OK:
-            printf("OK.\n\r");
-            DataStorage.msg = MessageOK;
-            CanTp_SingleFrameTx( &DataStorage.msg, 2 );
+            //printf("OK.\n\r");
+            //DataStorage.msg = MessageOK;
+            //CanTp_SingleFrameTx( &DataStorage.msg, 2 );
+            CanTp_SingleFrameTx( &MessageOK, 2 );
             State = IDLE;
         break;
     }
@@ -382,8 +386,8 @@ uint8_t AlarmValidaton( uint8_t *Data ) {
     uint8_t Minutes = HexToBCD( *( Data + 2 ) );
 
     if( Hours >= 0 && Hours < 24 && Minutes >= 0 && Minutes < 60) {
-        DataStorage.tm.tm_hour = Hours;
-        DataStorage.tm.tm_min = Minutes;
+        DataStorage.tm.tm_hour_a = Hours;
+        DataStorage.tm.tm_min_a = Minutes;
         Flag = 1;
     }
     else {

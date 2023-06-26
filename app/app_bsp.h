@@ -4,11 +4,16 @@
     #include "stm32g0xx.h"
     #include "stm32g0xx_hal_gpio.h"
     #include "stm32g0xx_hal_fdcan.h"
+    #include "stm32g0xx_hal_rtc.h"
+    #include "stm32g0xx_hal_rtc_ex.h"
+    #include "stm32g0xx_hal_pwr.h"
+    #include "stm32g0xx_hal_pwr_ex.h"
     #include <stdint.h>
+    #include <stdio.h>
 
 typedef enum
 {
-    SERIAL_MSG_NONE = 0,
+    SERIAL_MSG_NONE,
     SERIAL_MSG_TIME,
     SERIAL_MSG_DATE,
     SERIAL_MSG_ALARM
@@ -19,6 +24,8 @@ typedef struct _APP_TmTypeDef
     uint32_t tm_sec;         /* seconds,  range 0 to 59          */
     uint32_t tm_min;         /* minutes, range 0 to 59           */
     uint32_t tm_hour;        /* hours, range 0 to 23             */
+    uint32_t tm_min_a;
+    uint32_t tm_hour_a;
     uint32_t tm_mday;        /* day of the month, range 1 to 31  */
     uint32_t tm_mon;         /* month, range 0 to 11             */
     uint32_t tm_year;        /* years in rage 1900 2100          */
@@ -27,7 +34,7 @@ typedef struct _APP_TmTypeDef
     uint32_t tm_isdst;       /* daylight saving time             */
 } APP_TmTypeDef;
 
-typedef struct _APP_MsgTypeDef
+typedef struct _APP_MsgTypeDef  
 {
     uint8_t msg;          /*!< Store the message type to send */
     APP_TmTypeDef tm;     /*!< time and date in stdlib tm format */
