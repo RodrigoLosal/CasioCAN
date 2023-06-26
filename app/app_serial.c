@@ -28,6 +28,7 @@ uint8_t TimeValidaton( uint8_t *Data );
 uint8_t DateValidaton( uint8_t *Data );
 uint8_t WeekDay( uint8_t *Data );
 uint16_t YearDay(uint8_t *Data );
+uint8_t DaylightSavingTime( uint8_t *Data );
 uint8_t AlarmValidaton( uint8_t *Data );
 static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size );
 static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size );
@@ -128,10 +129,12 @@ void Serial_Task( void )
                 printf("Dia: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mday );
                 printf("Mes: %u\n\r", ( unsigned int ) DataStorage.tm.tm_mon );
                 printf("Anio: %u\n\r", ( unsigned int ) DataStorage.tm.tm_year );
-                DataStorage.tm.tm_wday = WeekDay( MessageData );
+                WeekDay( MessageData );
                 printf("Weekday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_wday );
-                DataStorage.tm.tm_yday = YearDay( MessageData );
+                YearDay( MessageData );
                 printf("Yearday: %u\n\r", ( unsigned int ) DataStorage.tm.tm_yday );
+                DaylightSavingTime( MessageData );
+                printf("Daylight Saving Time: %u\n\r", ( unsigned int ) DataStorage.tm.tm_isdst );
                 State = OK;
             }
             else {
@@ -279,6 +282,8 @@ uint8_t WeekDay( uint8_t *Data ) {
     j = Year / 100;
     h = ( Day + 13 * ( Month + 1 ) / 5 + k + k / 4 + j / 4 + 5 * j ) % 7;
 
+    DataStorage.tm.tm_wday = h;
+
     return h;
 }
 
@@ -345,6 +350,29 @@ uint16_t YearDay(uint8_t *Data ) {
     DataStorage.tm.tm_yday = YearDay;
 
     return YearDay;
+}
+
+uint8_t DaylightSavingTime( uint8_t *Data ) {
+    uint8_t Flag;
+    uint16_t Year = ( HexToBCD( *( Data + 3 ) ) * 100 ) + HexToBCD( *( Data + 4 ) );
+    uint16_t DayNumber = YearDay( Data );
+    uint16_t Start = 71, End = 309; //From March 12th to November 5th, 
+
+    if( ( Year % 4 ) == 0 ) {
+        Start++;
+        End++;
+    }
+
+    if( DayNumber >= Start && DayNumber <= End ) {
+        Flag = 1;
+    }
+    else {
+        Flag = 0;
+    }
+
+    DataStorage.tm.tm_isdst = Flag;
+
+    return Flag;
 }
 
 uint8_t AlarmValidaton( uint8_t *Data ) {
