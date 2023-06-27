@@ -1,19 +1,27 @@
 #include "app_clock.h"
 
-#define MESSAGE     00
-#define ALARM       10
-#define DATE        11
-#define TIME        12
-#define CLEAR       20
-#define PRINT       30
+#define MESSAGE     1
+#define ALARM       2
+#define DATE        3
+#define TIME        4
+#define CLEAR       5
+#define PRINT       6
 
-RTC_HandleTypeDef RtcHandler = {0};
-APP_MsgTypeDef nullMessageStruct = {0};
-extern APP_MsgTypeDef DataStorage;
+void SaveTime( void );
+void SaveDate( void );
+void SaveAlarm( void );
+void ClearStorage( void );
+void UpdateAndPrint( void );
 
+RTC_HandleTypeDef       RtcHandler;
+extern APP_MsgTypeDef   DataStorage;
 
-static uint8_t state = MESSAGE;
-uint8_t aux;
+RTC_TimeTypeDef sTime;
+RTC_DateTypeDef sDate;
+static uint8_t dateYearH;
+RTC_AlarmTypeDef sAlarm;
+
+static uint8_t State = MESSAGE;
 
 void Clock_Init( void )
 {
@@ -52,78 +60,92 @@ void Clock_Init( void )
 
 void Clock_Task( void )
 {
-    RTC_DateTypeDef sDate   = {0};
-    RTC_AlarmTypeDef sAlarm = {0};
-    RTC_TimeTypeDef sTime   = {0};
     static uint32_t tickstart;
-    static uint8_t dateYearH = 0;
 
-    switch(state)
+    switch(State)
     {
         case MESSAGE:
             if(DataStorage.msg == SERIAL_MSG_NONE)
             {
-                state = PRINT;
+                State = PRINT;
             }
             if(DataStorage.msg == SERIAL_MSG_ALARM)
             {
-                state = ALARM;
+                State = ALARM;
             }
-
             if(DataStorage.msg == SERIAL_MSG_DATE)
             {
-                state = DATE;
+                State = DATE;
             }
-
             if(DataStorage.msg == SERIAL_MSG_TIME)
             {
-                state = TIME;
+                State = TIME;
             }
-
         break;
 
         case ALARM:
-            sAlarm.Alarm = RTC_ALARM_A;
-            sAlarm.AlarmTime.Hours = DataStorage.tm.tm_hour_a;
-            sAlarm.AlarmTime.Minutes = DataStorage.tm.tm_min_a;
-            HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BIN );
-            state = CLEAR;
+            SaveAlarm();
+            State = CLEAR;
         break;
 
         case DATE:
-            sDate.Date = DataStorage.tm.tm_mday;
-            sDate.Month = DataStorage.tm.tm_mon;
-            sDate.Year = DataStorage.tm.tm_year % 100;
-            dateYearH = DataStorage.tm.tm_year / 100;
-            HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN);
-            state = CLEAR;
+            SaveDate();
+            State = CLEAR;
         break;
 
         case TIME:
-            sTime.Hours   = DataStorage.tm.tm_hour;
-            sTime.Minutes = DataStorage.tm.tm_min;
-            sTime.Seconds = DataStorage.tm.tm_sec;
-            HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN);
-            state = CLEAR;
+            SaveTime();
+            State = CLEAR;
         break;
 
         case CLEAR:
-            DataStorage = nullMessageStruct;
-            state = PRINT;
+            ClearStorage();
+            State = PRINT;
         break;
 
         case PRINT:
             if( (HAL_GetTick() - tickstart) >= 1000 )
             {
                 tickstart = HAL_GetTick();
-                HAL_RTC_GetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN );
-                HAL_RTC_GetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN );
-                HAL_RTC_GetAlarm( &RtcHandler, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN );
-                printf("Time: %02d:%02d:%02d\r\n", sTime.Hours, sTime.Minutes, sTime.Seconds);
-                printf("Date: %02d/%02d/%02d%02d\r\n", sDate.Date, sDate.Month, dateYearH, sDate.Year);
-                printf("Alarm: %02d:%02d\r\n", sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes);
+                UpdateAndPrint();
             }
-            state = MESSAGE;
+            State = MESSAGE;
         break;
     }
+}
+
+void SaveTime( void ) {
+    sTime.Hours   = DataStorage.tm.tm_hour;
+    sTime.Minutes = DataStorage.tm.tm_min;
+    sTime.Seconds = DataStorage.tm.tm_sec;
+    HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN);
+}
+
+void SaveDate( void ) {
+    sDate.Date = DataStorage.tm.tm_mday;
+    sDate.Month = DataStorage.tm.tm_mon;
+    sDate.Year = DataStorage.tm.tm_year % 100;
+    dateYearH = DataStorage.tm.tm_year / 100;
+    HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN);
+}
+
+void SaveAlarm( void ) {
+    sAlarm.Alarm = RTC_ALARM_A;
+    sAlarm.AlarmTime.Hours = DataStorage.tm.tm_hour_a;
+    sAlarm.AlarmTime.Minutes = DataStorage.tm.tm_min_a;
+    HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BIN );
+}
+
+void ClearStorage( void ) {
+    APP_MsgTypeDef nullMessageStruct = {0};
+    DataStorage = nullMessageStruct;
+}
+
+void UpdateAndPrint( void ) {
+    HAL_RTC_GetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN );
+    HAL_RTC_GetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN );
+    HAL_RTC_GetAlarm( &RtcHandler, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN );
+    printf("Time: %02d:%02d:%02d\r\n", sTime.Hours, sTime.Minutes, sTime.Seconds);
+    printf("Date: %02d/%02d/%02d%02d\r\n", sDate.Date, sDate.Month, dateYearH, sDate.Year);
+    printf("Alarm: %02d:%02d\r\n", sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes);
 }
