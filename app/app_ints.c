@@ -3,6 +3,12 @@
 -------------------------------------------------------------------------------------------------*/
 #include "app_bsp.h"
 
+extern void NMI_Handler( void );
+extern void HardFault_Handler( void );
+extern void SVC_Handler( void );
+extern void PendSV_Handler( void );
+extern void SysTick_Handler( void );
+extern void TIM16_FDCAN_IT0_IRQHandler( void );
 
 /**------------------------------------------------------------------------------------------------
 Brief.- Punto de entrada del programa
@@ -43,9 +49,6 @@ void SysTick_Handler( void )
 {
     HAL_IncTick( );
 }
-
-/*reference to FDCAN control structure handler*/
-extern FDCAN_HandleTypeDef CANHandler;
 
 /*Declare CAN interrupt service rutine as it is declare in startup_stm32g0b1xx.s file*/    
 void TIM16_FDCAN_IT0_IRQHandler( void )

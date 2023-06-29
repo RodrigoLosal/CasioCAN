@@ -1,5 +1,5 @@
-#ifndef _BSP_H_
-#define _BSP_H_
+#ifndef BSP_H_
+#define BSP_H_
 
     #include "stm32g0xx.h"
     #include "stm32g0xx_hal_gpio.h"
@@ -9,7 +9,11 @@
     #include "stm32g0xx_hal_pwr.h"
     #include "stm32g0xx_hal_pwr_ex.h"
     #include <stdint.h>
+    /* cppcheck-suppress misra-c2012-21.6 ; The library is only for testing pourpose. */
     #include <stdio.h>
+
+extern FDCAN_HandleTypeDef  CANHandler;
+//extern APP_MsgTypeDef       DataStorage;
 
 typedef enum
 {
@@ -39,5 +43,8 @@ typedef struct _APP_MsgTypeDef
     uint8_t msg;          /*!< Store the message type to send */
     APP_TmTypeDef tm;     /*!< time and date in stdlib tm format */
 } APP_MsgTypeDef;
+
+extern APP_MsgTypeDef   DataStorage;
+extern APP_Messages     MessageType;
 
 #endif

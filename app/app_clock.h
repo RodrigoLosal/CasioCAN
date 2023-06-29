@@ -1,5 +1,5 @@
-#ifndef __APP_CLOCK_H__
-#define __APP_CLOCK_H__
+#ifndef APP_CLOCK_H__
+#define APP_CLOCK_H__
 
 #include "app_bsp.h"
 
