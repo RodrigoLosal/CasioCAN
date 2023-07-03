@@ -63,7 +63,8 @@ void Clock_Init( void )
 void Clock_Task( void )
 {
     static uint8_t StateClock = MESSAGE;
-    static uint32_t tickstart;
+    static uint8_t UpdateFlag = 0;
+    static uint32_t TickStartClock;
 
     switch( StateClock )
     {
@@ -88,16 +89,19 @@ void Clock_Task( void )
 
         case ALARM:
             SaveAlarm();
+            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
         case DATE:
             SaveDate();
+            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
         case TIME:
             SaveTime();
+            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
@@ -107,9 +111,10 @@ void Clock_Task( void )
         break;
 
         case PRINT:
-            if( (HAL_GetTick() - tickstart) >= 1000 )
+            if( ( ( HAL_GetTick() - TickStartClock ) >= 1000 ) || ( UpdateFlag == ( uint8_t ) 1 ) )
             {
-                tickstart = HAL_GetTick();
+                TickStartClock = HAL_GetTick();
+                UpdateFlag = 0;
                 UpdateAndPrint();
             }
             StateClock = MESSAGE;
