@@ -1,33 +1,50 @@
-This is the title {#mainpage}
+Casio-CAN {#mainpage}
 ============
 
-This a subtitle
+Programmable digital clock by receiving messages through the CAN bus.
 -------------
 
-Description with **bold text** and *cursive*
+The operation of the program is divided into the following .c files, where the **main** one uses the *specific* functions of the rest:
 
-- bullets
-- bullets
+1. **main**
+2. **app_serial**
+3. **app_clock**
+4. **app_bsp**
+5. **app_ints**
 
-1. num bullets
-2. num bullets
+The header files are the following:
 
+1. **app_bsp**
+2. **app_serial**
+3. **app_clock**
 
-> This is just a nice quote like the ones you can find in social media
+> The rest of the .c and *header* files are part of the **HAL Library**.
 
-This is how we can insert some code snippets
+The main code is the following:
 
 ```C
-void function( void )
+int main( void )
 {
+    HAL_Init();
+    Serial_Init();
+    Clock_Init();
+    LED_Init();
+    initialise_monitor_handles();
+    Dog_Init();
 
+    while( 1 )
+    {
+        Serial_Task();
+        Clock_Task();
+        Heart_Beat();
+        Pet_The_Dog();
+    }
 }
 ```
+The **Serial_Task()** function is ruled by the following state machine:
 
-Some images can also be inserted 
+![Serial State Machine](/home/rodrigolosal/Imágenes/Diagrams/Part-1.png)
 
-![modular](https://media-exp1.licdn.com/dms/image/C4E0BAQF8Mlpq54uB3A/company-logo_200_200/0/1632781574324?e=1669248000&v=beta&t=atxklhEXRm8FXePXyjnOV7z83zC7qdryBUWngOacWWQ)
+The **Clock_Task()** function is ruled by the following state machine:
 
-And links
-
-For more visit this nice [cheat sheet](https://www.markdownguide.org/cheat-sheet/)
+![Clock State Machine](/home/rodrigolosal/Imágenes/Diagrams/Part-2.jpg)

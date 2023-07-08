@@ -1,5 +1,5 @@
 /**------------------------------------------------------------------------------------------------
- * Archivo con la funciones de interrupcion del micrcontroladores, revisar archivo startup_stm32g0b1.S
+ * File with the interrupt functions of the microcontrollers, check the file startup_stm32g0b1.S
 -------------------------------------------------------------------------------------------------*/
 #include "app_bsp.h"
 
@@ -11,7 +11,7 @@ extern void SysTick_Handler( void );
 extern void TIM16_FDCAN_IT0_IRQHandler( void );
 
 /**------------------------------------------------------------------------------------------------
-Brief.- Punto de entrada del programa
+Brief.- Program entry point.
 -------------------------------------------------------------------------------------------------*/
 void NMI_Handler( void )
 {
@@ -19,7 +19,7 @@ void NMI_Handler( void )
 }
 
 /**------------------------------------------------------------------------------------------------
-Brief.- Punto de entrada del programa
+Brief.- Program entry point.
 -------------------------------------------------------------------------------------------------*/
 void HardFault_Handler( void )
 {
@@ -27,7 +27,7 @@ void HardFault_Handler( void )
 }
 
 /**------------------------------------------------------------------------------------------------
-Brief.- Punto de entrada del programa
+Brief.- Program entry point.
 -------------------------------------------------------------------------------------------------*/
 void SVC_Handler( void )
 {
@@ -35,7 +35,7 @@ void SVC_Handler( void )
 }
 
 /**------------------------------------------------------------------------------------------------
-Brief.- Punto de entrada del programa
+Brief.- Program entry point.
 -------------------------------------------------------------------------------------------------*/
 void PendSV_Handler( void )
 {
@@ -43,7 +43,7 @@ void PendSV_Handler( void )
 }
 
 /**------------------------------------------------------------------------------------------------
-Brief.- Punto de entrada del programa
+Brief.- Program entry point.
 -------------------------------------------------------------------------------------------------*/
 void SysTick_Handler( void )
 {

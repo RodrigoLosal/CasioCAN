@@ -1,3 +1,11 @@
+/**
+ * @file    app_bsp.h
+ * @brief   **This file contains the resources required by the entire project folder.**
+ *
+ * Here are included all of the libraries that will be used, the headers of every file, and the structs
+ * that will be read & written by multiple files.
+ */
+
 #ifndef BSP_H_
 #define BSP_H_
 
@@ -8,12 +16,16 @@
     #include "stm32g0xx_hal_rtc_ex.h"
     #include "stm32g0xx_hal_pwr.h"
     #include "stm32g0xx_hal_pwr_ex.h"
+    #include "stm32g0xx_hal_wwdg.h"
     #include <stdint.h>
     /* cppcheck-suppress misra-c2012-21.6 ; The library is only for testing pourpose. */
     #include <stdio.h>
 
 extern FDCAN_HandleTypeDef  CANHandler;
-//extern APP_MsgTypeDef       DataStorage;
+
+/**
+  * @brief   Enum that defines which type of message is received by the CAN bus.
+  */
 
 typedef enum
 {
@@ -22,6 +34,10 @@ typedef enum
     SERIAL_MSG_DATE,
     SERIAL_MSG_ALARM
 } APP_Messages;
+
+/**
+  * @brief   Structure that contains the values received by the CAN bus and that will be used to set the RTC.
+  */
 
 typedef struct _APP_TmTypeDef 
 {
@@ -37,6 +53,10 @@ typedef struct _APP_TmTypeDef
     uint32_t tm_yday;        /* day in the year, range 0 to 365  */
     uint32_t tm_isdst;       /* daylight saving time             */
 } APP_TmTypeDef;
+
+/**
+  * @brief   Structure that contains the type of message received and it's values.
+  */
 
 typedef struct _APP_MsgTypeDef  
 {
