@@ -43,8 +43,8 @@ int main( void )
 ```
 The **Serial_Task()** function is ruled by the following state machine:
 
-![Serial State Machine](/home/rodrigolosal/Imágenes/Diagrams/Part-1.png)
+![Serial State Machine](https://bitbucket.org/rodrigolosal/modularmx/raw/21139d10be254557d809af59d61db459ab396af9/Diagrams/Part-1.png)
 
 The **Clock_Task()** function is ruled by the following state machine:
 
-![Clock State Machine](/home/rodrigolosal/Imágenes/Diagrams/Part-2.jpg)
+![Clock State Machine](https://bitbucket.org/rodrigolosal/modularmx/raw/21139d10be254557d809af59d61db459ab396af9/Diagrams/Part-2.jpg)
