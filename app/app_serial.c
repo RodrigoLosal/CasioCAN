@@ -10,33 +10,33 @@
 #include "app_serial.h"
 
 /** 
-  * @defgroup SerialStates
+  * @defgroup <SerialStates> States of the serial state machine.
   @{ */
-#define IDLE    1
-#define MESSAGE 2
-#define TIME    3
-#define DATE    4
-#define ALARM   5
-#define ERROR   6
-#define OK      7
+#define IDLE    1 /*!< 1st state of the serial state machine. */
+#define MESSAGE 2 /*!< 2nd state of the serial state machine. */
+#define TIME    3 /*!< 3rd state of the serial state machine. */
+#define DATE    4 /*!< 4th state of the serial state machine. */
+#define ALARM   5 /*!< 5th state of the serial state machine. */
+#define ERROR   6 /*!< 6th state of the serial state machine. */
+#define OK      7 /*!< 7th state of the serial state machine. */
 /**
   @} */
 
 /** 
-  * @defgroup Months
+  * @defgroup <Months> Months of the year.
   @{ */
-#define JAN ( uint8_t ) 1
-#define FEB ( uint8_t ) 2
-#define MAR ( uint8_t ) 3
-#define APR ( uint8_t ) 4
-#define MAY ( uint8_t ) 5
-#define JUN ( uint8_t ) 6
-#define JUL ( uint8_t ) 7
-#define AUG ( uint8_t ) 8
-#define SEP ( uint8_t ) 9
-#define OCT ( uint8_t ) 10
-#define NOV ( uint8_t ) 11
-#define DEC ( uint8_t ) 12
+#define JAN ( uint8_t ) 1 /*!< January. */
+#define FEB ( uint8_t ) 2 /*!< February. */
+#define MAR ( uint8_t ) 3 /*!< March. */
+#define APR ( uint8_t ) 4 /*!< April. */
+#define MAY ( uint8_t ) 5 /*!< May. */
+#define JUN ( uint8_t ) 6 /*!< June. */
+#define JUL ( uint8_t ) 7 /*!< July. */
+#define AUG ( uint8_t ) 8 /*!< August. */
+#define SEP ( uint8_t ) 9 /*!< September. */
+#define OCT ( uint8_t ) 10 /*!< October. */
+#define NOV ( uint8_t ) 11 /*!< November. */
+#define DEC ( uint8_t ) 12 /*!< December. */
 /**
   @} */
 
@@ -130,11 +130,6 @@ uint8_t State = IDLE;
  *
  * CAN frame is configured as Classic, the transmition identifier is set witht the value 0x122, and the
  * filter is set to accept only messages with the identifier 0x111.
- *
- * @param   <CANHandler[out]> Struct-type variable to save the configuration of the CAN registers.
- * @param   <CANTxHeader[out]> Struct-type variable to save the configuration of the CAN Transmition registers.
- * @param   <CANFilter[out]> Struct-type variable to save the configuration of the CAN Reception Filter registers.
- *
  */
 
 void Serial_Init( void )
@@ -262,10 +257,8 @@ void Serial_Task( void )
  * A flag is set whenever the interruption happens, and reset in the function that unpacks the
  * message.
  *
- * @param   <*hfdcan[in]> Pointer to the CAN Handler struct.
- * @param   <RxFifo0ITs[in]> Variable for the Fifo0 buffer.
- * @param   <Message[out]> Flag written to let other functions know there is a new message.
- *
+ * @param   <*hfdcan> Pointer to the CAN Handler struct.
+ * @param   <RxFifo0ITs> Variable for the Fifo0 buffer.
  */
 
 /* cppcheck-suppress misra-c2012-2.7 ; Function defined by the HAL library. */
@@ -278,7 +271,7 @@ void HAL_FDCAN_RxFifo0Callback( FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs
 /**
  * @brief   **Function that transforms hex data to BCD format.**
  *
- * @param   <Data[in]> This variable is expected to have one element of unpacked CAN message.
+ * @param   <Data> This variable is expected to have one element of unpacked CAN message.
  *
  * @retval  The transformed number to BCD format is returned.
  *
@@ -438,7 +431,7 @@ static uint8_t WeekDay( uint8_t *Data ) {
 /**
  * @brief   **Function to calculate the day # of the year.**
  *
- * @param   <*Data[in]> This pointer has the address of the unpacked CAN message.
+ * @param   <*Data> This pointer has the address of the unpacked CAN message.
  *
  * @retval  The variable "result" goes from 1 to 365 (or 366).
  *

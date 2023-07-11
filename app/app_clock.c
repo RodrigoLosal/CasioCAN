@@ -9,14 +9,14 @@
 #include "app_clock.h"
 
 /** 
-  * @defgroup ClockStates
+  * @defgroup <ClockStates> States of the clock state machine.
   @{ */
-#define MESSAGE     0
-#define ALARM       1
-#define DATE        2
-#define TIME        3
-#define CLEAR       4
-#define PRINT       5
+#define MESSAGE     0 /*!< 1st state of the clock state machine. */
+#define ALARM       1 /*!< 2nd state of the clock state machine. */
+#define DATE        2 /*!< 3rd state of the clock state machine. */
+#define TIME        3 /*!< 4th state of the clock state machine. */
+#define CLEAR       4 /*!< 5th state of the clock state machine. */
+#define PRINT       5 /*!< 6th state of the clock state machine. */
 /**
   @} */
 
@@ -64,11 +64,6 @@ RTC_AlarmTypeDef        sAlarm = {0};
  * @brief   **Function that initialices the registers of the RTC module.**
  *
  * The RTC is set to the 24 hr format. 
- *
- * @param   <RtcHandler[out]> Struct-type variable to save the configuration of the RTC registers.
- * @param   <sTime[out]> Struct-type variable to set the initial values of the time registers.
- * @param   <sDate[out]> Struct-type variable to set the initial values of the date registers.
- * @param   <sAlarm[out]> Struct-type variable to set the initial values of the alarm registers.
  */
 
 void Clock_Init( void )

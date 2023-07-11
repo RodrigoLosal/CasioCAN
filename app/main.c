@@ -13,7 +13,15 @@
 #include "app_serial.h"
 #include "app_clock.h"
 
+/**
+ * @brief   **Function to use semihosting.**
+ *
+ * This function allows printf() to be used during the program execution.
+ *
+ */
+
 extern void initialise_monitor_handles( void );
+
 static void LED_Init( void );
 static void Dog_Init( void );
 static void Heart_Beat( void );
