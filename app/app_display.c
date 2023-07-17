@@ -36,7 +36,10 @@ static void TimeString(char *string, unsigned char hours, unsigned char minutes,
 
 static char cadenaTime[9];
 static char cadenaDate[16];
+
+extern char *pCadena;
 char *pCadena = cadenaTime;
+extern char *pCadenaDate;
 char *pCadenaDate = cadenaDate;
 
 void Display_Init( void ){
@@ -96,20 +99,20 @@ void Display_Task( void ) {
 }
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday) {
-    char WeekDays[][4] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};
-    char Months[][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    char WeekDays[7][4] = { [0] = "Mo", [1] = "Tu", [2] = "We", [3] = "Th", [4] = "Fr", [5] = "Sa", [6] = "Su"};
+    char Months[12][4] = { [0] = "Jan", [1] = "Feb", [2] = "Mar", [3] = "Apr", [4] = "May", [5] = "Jun", [6] = "Jul", [7] = "Aug", [8] = "Sep", [9] = "Oct", [10] = "Nov", [11] = "Dec"};
     
-    strcpy( &string[0], Months[ month - 1] ); 
+    ( void ) strcpy( &string[0], Months[ month - ( unsigned char ) 1] ); 
     string[3] = ',';
-    string[4] = (day / 10 + '0');
-    string[5] = (day % 10 + '0');
+    string[4] = (day / ( unsigned char ) 10 + '0');
+    string[5] = (day % ( unsigned char ) 10 + '0');
     string[6] = ' ';
-    string[7] = (year / 1000 + '0');
-    string[8] = (year % 1000 /100 + '0');
-    string[9] = (year % 1000 %100 /10 + '0');
-    string[10] = (year % 1000 %100 %10 /1 + '0');
+    string[7] = ( char ) ( ( ( int ) year / 1000 ) + '0');
+    string[8] = ( char ) ( ( int ) year % ( int ) 1000 / ( int ) 100 + '0');
+    string[9] = ( char ) ( ( int ) year % ( int ) 1000 % ( int ) 100 / ( int ) 10 + '0');
+    string[10] = ( char ) ( ( int ) year % ( int ) 1000 % ( int ) 100 % ( int ) 10 / ( int ) 1 + '0');
     string[11] = ' ';
-    strcpy( &string[12], WeekDays [ weekday - 1 ] );
+    ( void ) strcpy( &string[12], WeekDays [ weekday - ( unsigned char ) 1 ] );
     string[14] = '\0';
 }
 

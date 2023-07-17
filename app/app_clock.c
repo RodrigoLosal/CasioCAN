@@ -259,7 +259,7 @@ static void UpdateAndPrint( void ) {
 
     ClockMsg.tm.tm_mday = sDate.Date;
     ClockMsg.tm.tm_mon = sDate.Month;
-    ClockMsg.tm.tm_year = ( dateYearH * ( 100 ) + sDate.Year );
+    ClockMsg.tm.tm_year = ( ( ( uint32_t ) dateYearH * ( uint32_t ) 100 ) + ( uint32_t ) sDate.Year );
     ClockMsg.tm.tm_wday = sDate.WeekDay;
     ClockMsg.msg = 1;
 }
