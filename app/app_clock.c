@@ -11,12 +11,12 @@
 /** 
   * @defgroup ClockStates
   @{ */
-#define MESSAGE     0
-#define ALARM       1
-#define DATE        2
-#define TIME        3
-#define CLEAR       4
-#define PRINT       5
+#define MESSAGE     0 /*!< First state of the clock states.*/
+#define ALARM       1 /*!< Second state of the clock states.*/
+#define DATE        2 /*!< Third state of the clock states.*/
+#define TIME        3 /*!< Fourth state of the clock states.*/
+#define CLEAR       4 /*!< Fifth state of the clock states.*/
+#define PRINT       5 /*!< Sixth state of the clock states.*/
 /**
   @} */
 
@@ -70,11 +70,6 @@ APP_MsgTypeDef ClockMsg = {0};
  * @brief   **Function that initialices the registers of the RTC module.**
  *
  * The RTC is set to the 24 hr format. 
- *
- * @param   <RtcHandler[out]> Struct-type variable to save the configuration of the RTC registers.
- * @param   <sTime[out]> Struct-type variable to set the initial values of the time registers.
- * @param   <sDate[out]> Struct-type variable to set the initial values of the date registers.
- * @param   <sAlarm[out]> Struct-type variable to set the initial values of the alarm registers.
  */
 
 void Clock_Init( void )

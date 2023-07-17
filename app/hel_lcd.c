@@ -1,6 +1,6 @@
 /**
  * @file hel_lcd.c
- * @brief Init the LCD and SPI, trsnmit the values
+ * @brief This file initialices the LCD operation and runs its functions.
 */
 
 #include "hel_lcd.h"

@@ -1,6 +1,6 @@
 /**
  * @file app_display.c
- * @brief Init the LCD and SPI withnstate machine
+ * @brief Init the LCD and SPI withnstate machine and LDSAFSFSFAFDSDstefwefnd.
 */
 
 #include "app_display.h"
@@ -34,13 +34,22 @@ SPI_HandleTypeDef SPI_Handler = {0};
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday);
 static void TimeString(char *string, unsigned char hours, unsigned char minutes, unsigned char seconds);
 
-static char cadenaTime[9];
-static char cadenaDate[16];
+static char TimeArray[9];
+static char DateArray[16];
 
-extern char *pCadena;
-char *pCadena = cadenaTime;
-extern char *pCadenaDate;
-char *pCadenaDate = cadenaDate;
+/**
+ * @brief  Pointer to the address of the string that contains the time format.
+ */
+
+extern char *TimeArrayPtr;
+char *TimeArrayPtr = TimeArray;
+
+/**
+ * @brief  Pointer to the address of the string that contains the date format.
+ */
+
+extern char *DateArrayPtr;
+char *DateArrayPtr = DateArray;
 
 void Display_Init( void ){
     /*Configuration of pins and port with the LCD struc*/
@@ -84,12 +93,12 @@ void Display_Task( void ) {
 
         case TRANSMIT:
             (void)HEL_LCD_SetCursor( &hLcd, 1, 3);
-            TimeString( pCadena, ClockMsg.tm.tm_hour, ClockMsg.tm.tm_min, ClockMsg.tm.tm_sec );
-            (void)HEL_LCD_String( &hLcd, pCadena);
+            TimeString( TimeArrayPtr, ClockMsg.tm.tm_hour, ClockMsg.tm.tm_min, ClockMsg.tm.tm_sec );
+            (void)HEL_LCD_String( &hLcd, TimeArrayPtr);
             
             (void)HEL_LCD_SetCursor( &hLcd, 0, 1);
-            DateString(pCadenaDate, ClockMsg.tm.tm_mon, ClockMsg.tm.tm_mday, ClockMsg.tm.tm_year, ClockMsg.tm.tm_wday);
-            (void)HEL_LCD_String( &hLcd, pCadenaDate);
+            DateString(DateArrayPtr, ClockMsg.tm.tm_mon, ClockMsg.tm.tm_mday, ClockMsg.tm.tm_year, ClockMsg.tm.tm_wday);
+            (void)HEL_LCD_String( &hLcd, DateArrayPtr);
             state_lcd = IDLE;
         break;
 

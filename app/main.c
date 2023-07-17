@@ -26,8 +26,16 @@ static void Pet_The_Dog( void );
 extern WWDG_HandleTypeDef WDGHandler;
 WWDG_HandleTypeDef WDGHandler = {0};
 
+/**
+ * @brief  Global variable for the Heartbeat function time counter.
+ */
+
 extern uint32_t TickStartHeart;
 uint32_t TickStartHeart = 0;
+
+/**
+ * @brief  Global variable for the Watchdog function time counter.
+ */
 
 extern uint32_t TickStartWDog;
 uint32_t TickStartWDog = 0;
