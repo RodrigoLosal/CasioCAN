@@ -61,6 +61,12 @@ extern RTC_AlarmTypeDef sAlarm;
 RTC_AlarmTypeDef        sAlarm = {0};
 
 /**
+ * @brief This is a struct variable to contain the members of date and time.
+ */ 
+
+APP_MsgTypeDef ClockMsg = {0};
+
+/**
  * @brief   **Function that initialices the registers of the RTC module.**
  *
  * The RTC is set to the 24 hr format. 
@@ -240,7 +246,14 @@ static void UpdateAndPrint( void ) {
     HAL_RTC_GetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN );
     HAL_RTC_GetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN );
     HAL_RTC_GetAlarm( &RtcHandler, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN );
-    ( void ) printf("Time: %02d:%02d:%02d\r\n", sTime.Hours, sTime.Minutes, sTime.Seconds);
-    ( void ) printf("Date: %02d/%02d/%02d%02d\r\n", sDate.Date, sDate.Month, dateYearH, sDate.Year);
-    ( void ) printf("Alarm: %02d:%02d\r\n", sAlarm.AlarmTime.Hours, sAlarm.AlarmTime.Minutes);
+
+    ClockMsg.tm.tm_hour = sTime.Hours;
+    ClockMsg.tm.tm_min = sTime.Minutes;
+    ClockMsg.tm.tm_sec = sTime.Seconds;
+
+    ClockMsg.tm.tm_mday = sDate.Date;
+    ClockMsg.tm.tm_mon = sDate.Month;
+    ClockMsg.tm.tm_year = (sDate.Year*(1000) + dateYearH);
+    ClockMsg.tm.tm_wday = sDate.WeekDay;
+    ClockMsg.msg = 1;
 }

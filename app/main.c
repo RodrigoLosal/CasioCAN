@@ -12,15 +12,8 @@
 #include "app_bsp.h"
 #include "app_serial.h"
 #include "app_clock.h"
-
-/**
- * @brief   **Function to use semihosting.**
- *
- * This function allows printf() to be used during the program execution.
- *
- */
-
-extern void initialise_monitor_handles( void );
+#include "hel_lcd.h"
+#include "app_display.h"
 
 static void LED_Init( void );
 static void Dog_Init( void );
@@ -33,7 +26,6 @@ static void Pet_The_Dog( void );
 
 extern WWDG_HandleTypeDef WDGHandler;
 WWDG_HandleTypeDef WDGHandler = {0};
-
 
 /**
  * @brief   **Main function.**
@@ -48,15 +40,16 @@ int main( void )
     Serial_Init();
     Clock_Init();
     LED_Init();
-    initialise_monitor_handles();
-    Dog_Init();
+    Display_Init();
+    //Dog_Init();
 
     while( 1 )
     {
         Serial_Task();
         Clock_Task();
+        Display_Task();
         Heart_Beat();
-        Pet_The_Dog();
+        //Pet_The_Dog();
     }
 }
 
@@ -88,13 +81,13 @@ static void LED_Init( void ) {
  * The Watchdog will operate in the Windowed configuration, with the following calculations to support
  * the chosen parameters:
  * 
- * Clock Cycle Time: 1 / ( ( APB = 32MHz ) / 4096 ) / 32 = 4096 us = 4.096 ms
+ * Clock Cycle Time: 1 / ( ( APB = 32MHz ) / 4096 ) / 128 = 16384 us = 16.384 ms
  * Timout:
- * tWWDG = ( 1 / ( 32MHz / 4096 ) / 32 ) * ( 127 + 1 ) = 524.29 ms
+ * tWWDG = ( 1 / ( 32MHz / 4096 ) / 128 ) * ( 127 + 1 ) = 2.0972 s
  * With Window value of 94:
- * tWWDG = ( 1 / ( 32MHz / 4096 ) / 32 ) * ( 97 + 1 ) = 401.41 ms
+ * tWWDG = ( 1 / ( 32MHz / 4096 ) / 128 ) * ( 97 + 1 ) = 1.8186 s
  * Difference:
- * 524.29 ms  - 401.41 ms = 122.88 ms
+ * 524.29 ms  - 401.41 ms = 278.6 ms
  *
  * @param   WDGHandler[out] Struct-type variable to save the configuration of the Watchdog registers.
  *
@@ -103,8 +96,8 @@ static void Dog_Init( void ) {
     __HAL_RCC_WWDG_CLK_ENABLE();
 
     WDGHandler.Instance = WWDG;
-    WDGHandler.Init.Prescaler = WWDG_PRESCALER_32;
-    WDGHandler.Init.Window = 97;
+    WDGHandler.Init.Prescaler = WWDG_PRESCALER_128;
+    WDGHandler.Init.Window = 110;
     WDGHandler.Init.Counter = 127;
 
     HAL_WWDG_Init( &WDGHandler );
@@ -119,7 +112,7 @@ static void Dog_Init( void ) {
 static void Heart_Beat( void ) {
     uint32_t TickStartHeart = 0;
 
-    if( (HAL_GetTick() - TickStartHeart) >= 300 ) {
+    if( (HAL_GetTick() - TickStartHeart) >= 280 ) {
         TickStartHeart = HAL_GetTick();
         HAL_GPIO_TogglePin( GPIOC, GPIO_PIN_0 );
     }

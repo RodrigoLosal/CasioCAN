@@ -2,10 +2,13 @@
  * File with the functions of the auxiliary incilizations of the library.
 -------------------------------------------------------------------------------------------------*/
 #include "app_bsp.h"
+#include "hel_lcd.h"
 
 extern void HAL_MspInit( void );
 extern void HAL_FDCAN_MspInit( FDCAN_HandleTypeDef *hfdcan );
 extern void HAL_RTC_MspInit( RTC_HandleTypeDef *hrtc );
+extern void HEL_LCD_MspInit( LCD_HandleTypeDef *hlcd );
+extern void HAL_SPI_MspInit( SPI_HandleTypeDef *hspi );
 
 /**
  * @brief   **Function to set the uC CPU to 64 MHz & the APB Clock to 32 MHz.**
@@ -101,4 +104,59 @@ void HAL_RTC_MspInit( RTC_HandleTypeDef *hrtc )
 
     __HAL_RCC_RTC_ENABLE();
     __HAL_RCC_RTCAPB_CLK_ENABLE();
+}
+
+/*cppcheck-suppress misra-c2012-8.4 ; Function provided by the HAL library.*/
+/**
+ * @brief Ports and Pins configuration for the LCD.
+ */
+
+void HEL_LCD_MspInit( LCD_HandleTypeDef *hlcd ){
+    //CS = GPIO_PIN_3
+    //RST = GPIO_PIN_2
+    //RS = GPIO_PIN_4
+    GPIO_InitTypeDef GPIO_Init;  /*Gpios initial structure*/
+    
+    __HAL_RCC_GPIOD_CLK_ENABLE( ); /* Enable port D clock */
+    __HAL_RCC_GPIOB_CLK_ENABLE( ); /* Enable port B clock */
+
+    GPIO_Init.Pin   = hlcd->CSPin | hlcd->RSTPin| hlcd->RSPin; /*Pins configuration*/
+    GPIO_Init.Mode  = GPIO_MODE_OUTPUT_PP; /*Push-pull output*/
+    GPIO_Init.Pull  = GPIO_NOPULL;         /*Pin without pull-up or pull-down*/
+    GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW; /*Pin to low frecuency*/
+    /*Initialize pins with the previous parameters*/
+    HAL_GPIO_Init( hlcd->RSTPort, &GPIO_Init );
+    HAL_GPIO_Init( hlcd->CSPort, &GPIO_Init );
+    HAL_GPIO_Init( hlcd->RSPort, &GPIO_Init);
+
+    GPIO_Init.Pin   = hlcd->BKLPin;         /*Pins configuration*/
+    GPIO_Init.Mode  = GPIO_MODE_OUTPUT_PP; /*Push-pull output*/
+    GPIO_Init.Pull  = GPIO_NOPULL;         /*Pin without pull-up or pull-down*/
+    GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW; /*Pin to low frecuency*/
+    /*Initialize pins with the previous parameters*/
+    HAL_GPIO_Init( hlcd->BKLPort, &GPIO_Init );
+
+    /* Apply the configuration to spi 1 but before we make sure that the slave is disabled pin D3 in alt*/
+    HAL_GPIO_WritePin( hlcd->CSPort, hlcd->CSPin, SET );
+    HAL_GPIO_WritePin( hlcd->BKLPort, hlcd->BKLPin, SET );
+}
+
+/*cppcheck-suppress misra-c2012-8.4 ; Function provided by the HAL library.*/
+/**
+ * @brief Configuration of the SPI module.
+ */
+
+void HAL_SPI_MspInit( SPI_HandleTypeDef *hspi ) {
+    (void)hspi;
+    /* B5, B6 and B8 pins in altern function of SPI */
+    GPIO_InitTypeDef GPIO;
+    __GPIOD_CLK_ENABLE();
+    __SPI1_CLK_ENABLE();
+
+    GPIO.Pin = GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_8;
+    GPIO.Mode = GPIO_MODE_AF_PP;
+    GPIO.Pull = GPIO_PULLUP;
+    GPIO.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO.Alternate = GPIO_AF1_SPI1;
+    HAL_GPIO_Init(GPIOD, &GPIO);
 }

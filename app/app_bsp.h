@@ -17,9 +17,10 @@
     #include "stm32g0xx_hal_pwr.h"
     #include "stm32g0xx_hal_pwr_ex.h"
     #include "stm32g0xx_hal_wwdg.h"
+    #include "stm32g0xx_hal_spi.h"
+    #include "stm32g0xx_hal_spi_ex.h"
     #include <stdint.h>
-    /* cppcheck-suppress misra-c2012-21.6 ; The library is only for testing pourpose. */
-    #include <stdio.h>
+    #include <string.h>
 
 extern FDCAN_HandleTypeDef  CANHandler;
 
@@ -66,5 +67,10 @@ typedef struct _APP_MsgTypeDef
 
 extern APP_MsgTypeDef   DataStorage;
 extern APP_Messages     MessageType;
+
+/**
+  * @brief  Struct variable of memeberst to transmit to LCD 
+  */
+extern APP_MsgTypeDef ClockMsg;
 
 #endif

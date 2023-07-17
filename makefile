@@ -10,7 +10,8 @@ SRCS += stm32g0xx_hal_rtc.c stm32g0xx_hal_rtc_ex.c
 SRCS += stm32g0xx_hal_rcc_ex.c
 SRCS += stm32g0xx_hal_pwr.c stm32g0xx_hal_pwr_ex.c
 SRCS += stm32g0xx_hal_wwdg.c
-SRCS += app_serial.c app_clock.c
+SRCS += stm32g0xx_hal_spi.c stm32g0xx_hal_spi_ex.c
+SRCS += app_serial.c app_clock.c hel_lcd.c app_display.c
 #archivo linker a usar
 LINKER = linker.ld
 #Simbolos gloobales del programa (#defines globales)
