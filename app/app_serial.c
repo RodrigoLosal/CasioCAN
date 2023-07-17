@@ -416,7 +416,8 @@ static uint8_t WeekDay( uint8_t *Data ) {
     uint8_t Day = HexToBCD( Data[1] );
     uint8_t Month = HexToBCD( Data[2] );
     uint16_t Year = ( ( uint16_t ) HexToBCD( Data[3] ) * ( uint16_t ) 100 ) + ( uint16_t ) HexToBCD( Data[4] );
-    uint16_t k;
+    
+    /*uint16_t k;
     uint16_t j;
     uint16_t h;
 
@@ -432,7 +433,42 @@ static uint8_t WeekDay( uint8_t *Data ) {
     j = Year / ( uint16_t ) 100;
     h = ( ( ( uint16_t ) Day + ( uint16_t ) 3 ) * ( ( uint16_t ) Month + ( uint16_t ) 1 ) / ( ( uint16_t ) 5 + k + k ) / ( ( uint16_t ) 4 + j ) / ( ( uint16_t ) 4 + ( uint16_t ) 5 ) * j ) % ( uint16_t ) 7;
 
-    return h;
+    return h;*/
+
+    //Zeller algorithm
+    uint8_t aux = ((uint8_t)14-Month) / (uint8_t)12;
+    uint16_t yearZeller= Year-aux;
+    uint8_t monthZeller= Month + (uint8_t)12*aux - (uint8_t)2;
+     
+    uint8_t diaSemana = 0;
+    
+    if(Day <= (uint8_t)31){
+        if (Month <= (uint8_t)12)
+        {
+            if(Month == (uint8_t)2){
+                if(((Year % (uint16_t)4 == (uint16_t)0) && (Year % (uint16_t)100 != (uint16_t)0)) || (Year % (uint16_t)400 == (uint16_t)0)){//revision si el año es bisiesto
+                    diaSemana = (uint8_t)((Day + yearZeller + (yearZeller / (uint16_t)4) - (yearZeller / (uint16_t)100) + (yearZeller / (uint16_t)400) + ((uint16_t)31 * monthZeller) / (uint16_t)12) % (uint8_t)7);
+            }
+            }else if((Month == (uint8_t)1) || (Month == (uint8_t)3) || (Month == (uint8_t)5) || (Month == (uint8_t)7) || (Month == (uint8_t)8) || (Month == (uint8_t)10) || (Month == (uint8_t)12)){
+                if(Day <= (uint8_t)31){
+                    diaSemana = (uint8_t)((Day + yearZeller + (yearZeller / (uint16_t)4) - (yearZeller / (uint16_t)100) + (yearZeller / (uint16_t)400) + ((uint16_t)31 * monthZeller) / (uint16_t)12) % (uint8_t)7);
+                }
+                
+            }else if((Month == (uint8_t)4) || (Month == (uint8_t)6) || (Month == (uint8_t)9) || (Month == (uint8_t)11)){
+                diaSemana = (uint8_t)((Day + yearZeller + (yearZeller / (uint16_t)4) - (yearZeller / (uint16_t)100) + (yearZeller / (uint16_t)400) + ((uint16_t)31 * monthZeller) / (uint16_t)12) % (uint8_t)7);
+            }else{
+                diaSemana= 7;
+                
+            } 
+        }else{
+            diaSemana= 7;
+        }
+               
+    }else{
+        diaSemana= 7;
+    }
+   
+   return diaSemana;
 }
 
 /**

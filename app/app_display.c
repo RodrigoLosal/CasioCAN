@@ -10,7 +10,7 @@
 /**
  * @defgroup Display states
  @{*/
-#define IDLE 1          /*!< State one of clock state machine.*/
+#define IDLE 1      /*!< State one of clock state machine.*/
 #define TRANSMIT 2  /*!< State two of clock state machine.*/
 /**@}*/
 
@@ -29,7 +29,7 @@ LCD_HandleTypeDef  hLcd = {0};
  * @brief This is a struct variable to contain the members of SPI.
  */ 
 extern SPI_HandleTypeDef SPI_Handler;     
-SPI_HandleTypeDef SPI_Handler = {0}; 
+SPI_HandleTypeDef SPI_Handler = {0};
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday);
 static void TimeString(char *string, unsigned char hours, unsigned char minutes, unsigned char seconds);
@@ -70,7 +70,7 @@ void Display_Init( void ){
     (void)HEL_LCD_Init(&hLcd);
 }
 
-void Display_Task( void ){
+void Display_Task( void ) {
     switch(state_lcd){
         case IDLE:
             if(ClockMsg.msg == (uint8_t)1){
@@ -87,6 +87,7 @@ void Display_Task( void ){
             (void)HEL_LCD_SetCursor( &hLcd, 0, 1);
             DateString(pCadenaDate, ClockMsg.tm.tm_mon, ClockMsg.tm.tm_mday, ClockMsg.tm.tm_year, ClockMsg.tm.tm_wday);
             (void)HEL_LCD_String( &hLcd, pCadenaDate);
+            state_lcd = IDLE;
         break;
 
         default:
@@ -95,10 +96,10 @@ void Display_Task( void ){
 }
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday) {
-    char dias[][4] = {"Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"};
-    char mes[][4] = {"Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"};
+    char WeekDays[][4] = {"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"};
+    char Months[][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     
-    strcat(string, mes[month-1]); 
+    strcpy( &string[0], Months[ month - 1] ); 
     string[3] = ',';
     string[4] = (day / 10 + '0');
     string[5] = (day % 10 + '0');
@@ -108,19 +109,19 @@ static void DateString(char *string, unsigned char month, unsigned char day, uns
     string[9] = (year % 1000 %100 /10 + '0');
     string[10] = (year % 1000 %100 %10 /1 + '0');
     string[11] = ' ';
-    strcpy(&string[12], dias[weekday-1]);
-    string[14] = '\0';      
+    strcpy( &string[12], WeekDays [ weekday - 1 ] );
+    string[14] = '\0';
 }
 
 static void TimeString(char *string, unsigned char hours, unsigned char minutes, unsigned char seconds) {
 	 
-    string[0] = (hours / (unsigned char)10 + '0');
-    string[1] = (hours % (unsigned char)10 + '0');
+    string[0] = ( hours / (unsigned char)10 + '0' );
+    string[1] = ( hours % (unsigned char)10 + '0' );
     string[2] = ':';
-    string[3] = (minutes / (unsigned char)10 + '0');
-    string[4] = (minutes % (unsigned char)10 + '0');
+    string[3] = ( minutes / (unsigned char)10 + '0' );
+    string[4] = ( minutes % (unsigned char)10 + '0' );
     string[5] = ':';
-    string[6] = (seconds / (unsigned char)10  + '0');
-    string[7] = (seconds % (unsigned char)10 + '0');
+    string[6] = ( seconds / (unsigned char)10  + '0' );
+    string[7] = ( seconds % (unsigned char)10 + '0' );
     string[8] = '\0';
 }

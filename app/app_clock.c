@@ -102,8 +102,8 @@ void Clock_Init( void )
     HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BCD );
 
     sDate.Month = RTC_MONTH_JANUARY;
-    sDate.Date = 0x16;
-    sDate.Year = 0x99;
+    sDate.Date = 0x01;
+    sDate.Year = 0x00;
     HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BCD );
 
     sAlarm.Alarm = RTC_ALARM_A;
@@ -207,6 +207,7 @@ static void SaveTime( void ) {
  */
 
 static void SaveDate( void ) {
+    sDate.WeekDay = DataStorage.tm.tm_wday;
     sDate.Date = DataStorage.tm.tm_mday;
     sDate.Month = DataStorage.tm.tm_mon;
     sDate.Year = DataStorage.tm.tm_year % ( uint32_t ) 100;
@@ -258,7 +259,7 @@ static void UpdateAndPrint( void ) {
 
     ClockMsg.tm.tm_mday = sDate.Date;
     ClockMsg.tm.tm_mon = sDate.Month;
-    ClockMsg.tm.tm_year = (sDate.Year*(1000) + dateYearH);
+    ClockMsg.tm.tm_year = ( dateYearH * ( 100 ) + sDate.Year );
     ClockMsg.tm.tm_wday = sDate.WeekDay;
     ClockMsg.msg = 1;
 }

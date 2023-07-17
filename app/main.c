@@ -12,15 +12,7 @@
 #include "app_bsp.h"
 #include "app_serial.h"
 #include "app_clock.h"
-
-/**
- * @brief   **Function to use semihosting.**
- *
- * This function allows printf() to be used during the program execution.
- *
- */
-
-extern void initialise_monitor_handles( void );
+#include "app_display.h"
 
 static void LED_Init( void );
 static void Dog_Init( void );
@@ -33,6 +25,9 @@ static void Pet_The_Dog( void );
 
 extern WWDG_HandleTypeDef WDGHandler;
 WWDG_HandleTypeDef WDGHandler = {0};
+
+uint32_t TickStartHeart = 0;
+uint32_t TickStartWDog = 0;
 
 /**
  * @brief   **Main function.**
@@ -106,6 +101,8 @@ static void Dog_Init( void ) {
     WDGHandler.Init.Prescaler = WWDG_PRESCALER_128;
     WDGHandler.Init.Window = 110;
     WDGHandler.Init.Counter = 127;
+    WDGHandler.Init.EWIMode = WWDG_EWI_DISABLE;
+
 
     HAL_WWDG_Init( &WDGHandler );
 }
@@ -117,9 +114,7 @@ static void Dog_Init( void ) {
  *
  */
 static void Heart_Beat( void ) {
-    uint32_t TickStartHeart = 0;
-
-    if( (HAL_GetTick() - TickStartHeart) >= 280 ) {
+    if( (HAL_GetTick() - TickStartHeart) >= 300 ) {
         TickStartHeart = HAL_GetTick();
         HAL_GPIO_TogglePin( GPIOC, GPIO_PIN_0 );
     }
@@ -133,9 +128,7 @@ static void Heart_Beat( void ) {
  *
  */
 static void Pet_The_Dog( void ) {
-    uint32_t TickStartWDog = 0;
-
-    if( (HAL_GetTick() - TickStartWDog) >= 160 ) {
+    if( (HAL_GetTick() - TickStartWDog) >= 280u ) {
         TickStartWDog = HAL_GetTick();
         HAL_WWDG_Refresh( &WDGHandler );
     }
