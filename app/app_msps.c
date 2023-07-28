@@ -19,11 +19,17 @@ void HAL_MspInit( void )
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
+    HAL_StatusTypeDef Status;
+
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
 
     /** Configure the main internal regulator output voltage*/
-    HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, PWR_RET_ERROR );
 
     /* Initializes the RCC Oscillators according to the specified parameters in the RCC_OscInitTypeDef structure
     The frequency set is 64MHz with the internal 16MHz HSI oscilator. According to the formulas:
@@ -43,14 +49,22 @@ void HAL_MspInit( void )
     RCC_OscInitStruct.PLL.PLLP            = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ            = RCC_PLLQ_DIV2;
     RCC_OscInitStruct.PLL.PLLR            = RCC_PLLR_DIV2;
-    HAL_RCC_OscConfig( &RCC_OscInitStruct );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RCC_OscConfig( &RCC_OscInitStruct );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RCC_RET_ERROR );
 
     /** Initializes the CPU, AHB and APB buses clocks*/
     RCC_ClkInitStruct.ClockType       = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1;
     RCC_ClkInitStruct.SYSCLKSource    = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider   = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider  = RCC_HCLK_DIV2;
-    HAL_RCC_ClockConfig( &RCC_ClkInitStruct, FLASH_LATENCY_2 );   
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RCC_ClockConfig( &RCC_ClkInitStruct, FLASH_LATENCY_2 );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RCC_RET_ERROR );
 }
 
 /**
@@ -82,25 +96,43 @@ void HAL_RTC_MspInit( RTC_HandleTypeDef *hrtc )
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
+    HAL_StatusTypeDef Status;
+
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
 
-    HAL_PWREx_ControlVoltageScaling( PWR_REGULATOR_VOLTAGE_SCALE1 );
+    /*The function is used and its result is verified.*/
+    Status = HAL_PWREx_ControlVoltageScaling( PWR_REGULATOR_VOLTAGE_SCALE1 );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, PWR_RET_ERROR );
+
     HAL_PWR_EnableBkUpAccess();
     __HAL_RCC_LSEDRIVE_CONFIG( RCC_LSEDRIVE_LOW );
 
     PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_RTC;
     PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_NONE;
-    HAL_RCCEx_PeriphCLKConfig ( &PeriphClkInitStruct );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RCCEx_PeriphCLKConfig ( &PeriphClkInitStruct );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RCC_RET_ERROR );
 
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI | RCC_OSCILLATORTYPE_LSE;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
     RCC_OscInitStruct.LSEState = RCC_LSE_ON;
     RCC_OscInitStruct.LSIState = RCC_LSI_OFF;
-    HAL_RCC_OscConfig( &RCC_OscInitStruct );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RCC_OscConfig( &RCC_OscInitStruct );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RCC_RET_ERROR );
 
     PeriphClkInitStruct.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
-    HAL_RCCEx_PeriphCLKConfig( &PeriphClkInitStruct );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RCCEx_PeriphCLKConfig( &PeriphClkInitStruct );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RCC_RET_ERROR );
 
     __HAL_RCC_RTC_ENABLE();
     __HAL_RCC_RTCAPB_CLK_ENABLE();

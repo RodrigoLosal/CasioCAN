@@ -49,7 +49,13 @@ uint32_t TickStartWDog = 0;
 
 int main( void )
 {
-    HAL_Init();
+    HAL_StatusTypeDef Status;
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_Init();
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, HAL_RET_ERROR );
+
     Serial_Init();
     Clock_Init();
     LED_Init();
@@ -106,6 +112,8 @@ static void LED_Init( void ) {
  *
  */
 static void Dog_Init( void ) {
+    HAL_StatusTypeDef Status;
+
     __HAL_RCC_WWDG_CLK_ENABLE();
 
     WDGHandler.Instance = WWDG;
@@ -114,8 +122,10 @@ static void Dog_Init( void ) {
     WDGHandler.Init.Counter = 127;
     WDGHandler.Init.EWIMode = WWDG_EWI_DISABLE;
 
-
-    HAL_WWDG_Init( &WDGHandler );
+    /*The function is used and its result is verified.*/
+    Status = HAL_WWDG_Init( &WDGHandler );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, WWDG_RET_ERROR );
 }
 
 /**
@@ -139,8 +149,67 @@ static void Heart_Beat( void ) {
  *
  */
 static void Pet_The_Dog( void ) {
+    HAL_StatusTypeDef Status;
+    
     if( (HAL_GetTick() - TickStartWDog) >= 280u ) {
         TickStartWDog = HAL_GetTick();
-        HAL_WWDG_Refresh( &WDGHandler );
+
+        /*The function is used and its result is verified.*/
+        Status = HAL_WWDG_Refresh( &WDGHandler );
+        /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+        assert_error( Status == HAL_OK, WWDG_RET_ERROR );
+    }
+}
+
+
+/**
+ * @brief   **Safe State Function.**
+ *
+ * All the internal clocks will be desabled and the uC will wait for the user to make a hard reset, 
+ * the LEDs in Port C will display the error code in binary format.
+ *
+ */
+
+void Safe_State( uint8_t *file, uint32_t line, uint8_t error ) {
+    (void) file;
+    (void) line;
+
+    /*Disable all maskable interrupts.*/
+    __disable_irq();
+
+    /*Disable FDCAN module.*/
+    HAL_GPIO_DeInit( GPIOD, GPIO_PIN_0 | GPIO_PIN_1 );
+    __HAL_RCC_FDCAN_CLK_DISABLE();
+
+    /*Disable SPI module.*/
+    HAL_GPIO_DeInit( GPIOD, GPIO_PIN_6 | GPIO_PIN_8 );
+    __SPI1_CLK_DISABLE();
+
+    /*Disable Heartbeat LED pin.*/
+    HAL_GPIO_DeInit( GPIOC, GPIO_PIN_0 );
+
+    /*Disable the rest of the clocks*/
+    __HAL_RCC_SYSCFG_CLK_DISABLE();
+    __HAL_RCC_PWR_CLK_DISABLE();
+
+    /*Disable all timers.*/
+    __HAL_RCC_RTC_DISABLE();
+
+    /**/
+    GPIO_InitTypeDef GPIO_InitStruct;
+
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+
+    GPIO_InitStruct.Pin = 0x00FF;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+    HAL_GPIO_Init( GPIOC, &GPIO_InitStruct );
+
+    HAL_GPIO_WritePin( GPIOC, error, GPIO_PIN_SET );
+  
+    while( 1 ) {
+        /*Waiting for the user to press the reset button*/
     }
 }

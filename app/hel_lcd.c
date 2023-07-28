@@ -15,9 +15,15 @@
 /**@} */
 
 uint8_t HEL_LCD_Init( LCD_HandleTypeDef *hlcd ){
-    //CS = GPIO_PIN_3
-    //RST = GPIO_PIN_2
-    //RS = GPIO_PIN_4
+    assert_error( (hlcd->CSPort == GPIOD), LCD_PAR_ERROR );      /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->RSTPort == GPIOD), LCD_PAR_ERROR );     /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->RSPort == GPIOD), LCD_PAR_ERROR );      /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->BKLPort == GPIOB), LCD_PAR_ERROR );     /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->CSPin == GPIO_PIN_3), LCD_PAR_ERROR );         /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->RSTPin == GPIO_PIN_2), LCD_PAR_ERROR );        /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/ 
+    assert_error( (hlcd->RSPin == GPIO_PIN_4), LCD_PAR_ERROR );         /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( (hlcd->BKLPin == GPIO_PIN_4), LCD_PAR_ERROR );        /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+
     uint8_t resulInit = 0;
     HEL_LCD_MspInit( hlcd );
 

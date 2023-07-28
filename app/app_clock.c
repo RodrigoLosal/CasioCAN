@@ -11,12 +11,13 @@
 /** 
   * @defgroup ClockStates
   @{ */
-#define MESSAGE     0 /*!< First state of the clock states.*/
-#define ALARM       1 /*!< Second state of the clock states.*/
-#define DATE        2 /*!< Third state of the clock states.*/
-#define TIME        3 /*!< Fourth state of the clock states.*/
-#define CLEAR       4 /*!< Fifth state of the clock states.*/
-#define PRINT       5 /*!< Sixth state of the clock states.*/
+#define IDLE        0 /*!< First state of the clock states.*/
+#define RECEPTION   1 /*!< Second state of the clock states.*/
+#define ALARM       2 /*!< Third state of the clock states.*/
+#define DATE        3 /*!< Fourth state of the clock states.*/
+#define TIME        4 /*!< Fifth state of the clock states.*/
+#define CLEAR       5 /*!< Sixth state of the clock states.*/
+#define MESSAGE     6 /*!< Seventh state of the clock states.*/
 /**
   @} */
 
@@ -25,6 +26,7 @@ static void SaveDate( void );
 static void SaveAlarm( void );
 static void ClearStorage( void );
 static void UpdateAndPrint( void );
+static uint32_t Clock_Machine( uint32_t currentState ); 
 
 /**
   * @brief   Structure that will contain the values to initialice the RTC.
@@ -39,6 +41,13 @@ RTC_HandleTypeDef           RtcHandler = {0};
 
 extern RTC_TimeTypeDef  sTime;
 RTC_TimeTypeDef         sTime = {0};
+
+/**
+  * @brief Variable to compare the seconds.
+*/ 
+
+extern uint8_t secondsCount;
+uint8_t secondsCount = 60;
 
 /**
   * @brief   Structure that will contain the values to initialice the RTC date values.
@@ -67,6 +76,18 @@ RTC_AlarmTypeDef        sAlarm = {0};
 APP_MsgTypeDef ClockMsg = {0};
 
 /**
+ * @brief Struct variable of Queue elements
+*/
+QUEUE_HandleTypeDef ClockQueue = {0};
+
+/**
+ * @brief Struct variable with the array of Queue
+*/
+/* cppcheck-suppress misra-c2012-8.7 ;If header is modified the program will not work*/
+NEW_MsgTypeDef buffer_clock[45];  /* cppcheck-suppress misra-c2012-8.4 ;Its been used due to the queue*/
+
+
+/**
  * @brief   **Function that initialices the registers of the RTC module.**
  *
  * The RTC is set to the 24 hr format. 
@@ -74,13 +95,23 @@ APP_MsgTypeDef ClockMsg = {0};
 
 void Clock_Init( void )
 {
+    ClockQueue.Buffer = (void*)buffer_clock;    /*Indicate the buffer that the tail will use as memory space*/
+    ClockQueue.Elements = 45u;                  /*Indicate the maximum number of elements that can be stored*/ 
+    ClockQueue.Size = sizeof( NEW_MsgTypeDef ); /*Indicate the size in bytes of the type of elements to handle*/ 
+    HIL_QUEUE_Init( &ClockQueue );              /*Initialize the queue*/ 
+
+    HAL_StatusTypeDef Status;
+
     RtcHandler.Instance          = RTC;
     RtcHandler.Init.HourFormat   = RTC_HOURFORMAT_24;
     RtcHandler.Init.AsynchPrediv = 127;
     RtcHandler.Init.SynchPrediv  = 255;
     RtcHandler.Init.OutPut       = RTC_OUTPUT_DISABLE;
 
-    HAL_RTC_Init( &RtcHandler );
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_Init( &RtcHandler );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 
     RTC_DateTypeDef sDate = {0};
     RTC_TimeTypeDef sTime = {0};
@@ -93,18 +124,44 @@ void Clock_Init( void )
     sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
     sTime.StoreOperation = RTC_STOREOPERATION_RESET;
 
-
-    HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BCD );
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BCD );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 
     sDate.Month = RTC_MONTH_JANUARY;
     sDate.Date = 0x01;
     sDate.Year = 0x00;
-    HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BCD );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BCD );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 
     sAlarm.Alarm = RTC_ALARM_A;
     sAlarm.AlarmTime.Hours   = 0x12;
     sAlarm.AlarmTime.Minutes = 0x00;
-    HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BCD );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BCD );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
+}
+
+/**
+* @brief Clock task function 
+* This function checks the queue of pending tasks every 50ms and process them calling the clock machine   
+*/
+
+void Clock_Task(void) {
+   static uint32_t state = RECEPTION;
+   static uint32_t serialtick =0;
+   /* We check the waiting queue with 50ms */
+   if ((HAL_GetTick() - serialtick) >= 50u) {
+       serialtick = HAL_GetTick(); 
+       
+        state = Clock_Machine(state);
+   }
 }
 
 /**
@@ -115,69 +172,71 @@ void Clock_Init( void )
  * every second. More details are shown in the diagram.
  */
 
-void Clock_Task( void )
+static uint32_t Clock_Machine( uint32_t currentState )
 {
-    static uint8_t StateClock = MESSAGE;
-    static uint8_t UpdateFlag = 0;
-    static uint32_t TickStartClock;
+    uint32_t StateClock = currentState;
 
     switch( StateClock )
     {
-        case MESSAGE:
-            if(DataStorage.msg == ( uint8_t ) SERIAL_MSG_NONE)
+        case IDLE:
+            StateClock = RECEPTION;
+        break;
+
+        case RECEPTION:
+            /*Revision and unpaked the messages */
+           if( HIL_QUEUE_IsEmptyISR( &ClockQueue, 0xFF ) == 0 )
             {
-                StateClock = PRINT;
+                /*Read the first message*/
+                (void)HIL_QUEUE_ReadISR( &ClockQueue, &DataStorage, 0xFF );
+
+                if(DataStorage.msg == (uint8_t)SERIAL_MSG_TIME) {
+                    StateClock = TIME;
+                }
+                else if(DataStorage.msg == (uint8_t)SERIAL_MSG_DATE) {
+                    StateClock = DATE;
+                }
+                else if(DataStorage.msg == (uint8_t)SERIAL_MSG_ALARM) {
+                    StateClock = ALARM;
+                }
+                else{    
+                }
             }
-            if(DataStorage.msg == ( uint8_t ) SERIAL_MSG_ALARM)
-            {
-                StateClock = ALARM;
-            }
-            if(DataStorage.msg == ( uint8_t ) SERIAL_MSG_DATE)
-            {
-                StateClock = DATE;
-            }
-            if(DataStorage.msg == ( uint8_t ) SERIAL_MSG_TIME)
-            {
-                StateClock = TIME;
+            else{ 
+                StateClock = MESSAGE;
             }
         break;
 
         case ALARM:
             SaveAlarm();
-            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
         case DATE:
             SaveDate();
-            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
         case TIME:
             SaveTime();
-            UpdateFlag = 1;
             StateClock = CLEAR;
         break;
 
         case CLEAR:
             ClearStorage();
-            StateClock = PRINT;
+            StateClock = MESSAGE;
         break;
 
-        case PRINT:
-            if( ( ( HAL_GetTick() - TickStartClock ) >= 1000 ) || ( UpdateFlag == ( uint8_t ) 1 ) )
-            {
-                TickStartClock = HAL_GetTick();
-                UpdateFlag = 0;
-                UpdateAndPrint();
-            }
-            StateClock = MESSAGE;
+        case MESSAGE:
+            UpdateAndPrint();
+
+            StateClock = IDLE;
         break;
 
         default:
         break;
     }
+
+    return StateClock;
 }
 
 /**
@@ -188,10 +247,18 @@ void Clock_Task( void )
  */
 
 static void SaveTime( void ) {
+    HAL_StatusTypeDef Status;
+
     sTime.Hours   = DataStorage.tm.tm_hour;
     sTime.Minutes = DataStorage.tm.tm_min;
     sTime.Seconds = DataStorage.tm.tm_sec;
-    HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN);
+    sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+    sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN);
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 }
 
 /**
@@ -202,12 +269,18 @@ static void SaveTime( void ) {
  */
 
 static void SaveDate( void ) {
+    HAL_StatusTypeDef Status;
+
     sDate.WeekDay = DataStorage.tm.tm_wday;
     sDate.Date = DataStorage.tm.tm_mday;
     sDate.Month = DataStorage.tm.tm_mon;
     sDate.Year = DataStorage.tm.tm_year % ( uint32_t ) 100;
     dateYearH = DataStorage.tm.tm_year / ( uint32_t ) 100;
-    HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN);
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN);
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 }
 
 /**
@@ -218,10 +291,16 @@ static void SaveDate( void ) {
  */
 
 static void SaveAlarm( void ) {
+    HAL_StatusTypeDef Status;
+
     sAlarm.Alarm = RTC_ALARM_A;
     sAlarm.AlarmTime.Hours = DataStorage.tm.tm_hour_a;
     sAlarm.AlarmTime.Minutes = DataStorage.tm.tm_min_a;
-    HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BIN );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_SetAlarm( &RtcHandler, &sAlarm, RTC_FORMAT_BIN );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 }
 
 /**
@@ -244,9 +323,23 @@ static void ClearStorage( void ) {
  */
 
 static void UpdateAndPrint( void ) {
-    HAL_RTC_GetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN );
-    HAL_RTC_GetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN );
-    HAL_RTC_GetAlarm( &RtcHandler, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN );
+    HAL_StatusTypeDef Status;
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_GetTime( &RtcHandler, &sTime, RTC_FORMAT_BIN );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
+
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_GetDate( &RtcHandler, &sDate, RTC_FORMAT_BIN );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_RTC_GetAlarm( &RtcHandler, &sAlarm, RTC_ALARM_A, RTC_FORMAT_BIN );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, RTC_RET_ERROR );
 
     ClockMsg.tm.tm_hour = sTime.Hours;
     ClockMsg.tm.tm_min = sTime.Minutes;
@@ -256,5 +349,8 @@ static void UpdateAndPrint( void ) {
     ClockMsg.tm.tm_mon = sDate.Month;
     ClockMsg.tm.tm_year = ( ( ( uint32_t ) dateYearH * ( uint32_t ) 100 ) + ( uint32_t ) sDate.Year );
     ClockMsg.tm.tm_wday = sDate.WeekDay;
+
+    (void) HIL_QUEUE_WriteISR( &DisplayQueue, &DataStorage, 0xFF );
+
     ClockMsg.msg = 1;
 }

@@ -14,15 +14,49 @@
     #include "stm32g0xx_hal_fdcan.h"
     #include "stm32g0xx_hal_rtc.h"
     #include "stm32g0xx_hal_rtc_ex.h"
+    #include "stm32g0xx_hal_rcc.h"
+    #include "stm32g0xx_hal_rcc_ex.h"
     #include "stm32g0xx_hal_pwr.h"
     #include "stm32g0xx_hal_pwr_ex.h"
     #include "stm32g0xx_hal_wwdg.h"
     #include "stm32g0xx_hal_spi.h"
     #include "stm32g0xx_hal_spi_ex.h"
+    #include "hil_queue.h"
     #include <stdint.h>
     #include <string.h>
 
 extern FDCAN_HandleTypeDef  CANHandler;
+
+/*macro to detect erros, wehere if expr is evaluated to false is an error*/
+#define assert_error(expr, error)         ((expr) ? (void)0U : Safe_State((uint8_t *)__FILE__, __LINE__, (error)))
+
+extern void Safe_State(uint8_t *file, uint32_t line, uint8_t error);
+
+/**
+  * @brief   Enum that defines the types of errors of every module initialization.
+  */
+
+/*cppcheck-suppress misra-c2012-2.4 ; Enum used for functional safety.*/
+typedef enum _App_ErrorsCode {
+    WWDG_RET_ERROR = 1U,        /*!< WDG ERROR      1*/
+    PWR_RET_ERROR,              /*!< PWR ERROR      2*/
+    RCC_RET_ERROR,              /*!< RCC ERROR      3*/
+    HARDFAULT_RET_ERROR,        /*!< HFAULT ERROR   4*/
+    ECC_RET_ERROR,              /*!< ECC ERROR      5*/
+    CAN_RET_ERROR,              /*!< CAN ERROR      6*/
+    RTC_RET_ERROR,              /*!< RTC ERROR      7*/
+    SPI_RET_ERROR,              /*!< SPI ERROR      8*/
+    LCD_RET_ERROR,              /*!< LCD ERROR      9*/
+    HAL_RET_ERROR,              /*!< HAL ERROR      10*/
+    CAN_FUNC_ERROR,             /*!< CAN F ERROR    11*/
+    HARDFAULT_FUNC_ERROR,       /*!< HFAULT ERROR   12*/
+    LCD_PAR_ERROR,              /*!< LCD ERROR      13*/
+    SPI_FUNC_ERROR,             /*!< LCD ERROR      14*/
+    WWDG_FUNC_ERROR,            /*!< LCD ERROR      15*/
+    ECC_FUNC_ERROR              /*!< LCD ERROR      16*/
+} 
+/*cppcheck-suppress misra-c2012-2.3 ; Macro required for functional safety.*/
+App_ErrorsCode;
 
 /**
   * @brief   Enum that defines which type of message is received by the CAN bus.
@@ -72,5 +106,10 @@ extern APP_Messages     MessageType;
   * @brief  Struct variable of memeberst to transmit to LCD 
   */
 extern APP_MsgTypeDef ClockMsg;
+
+typedef struct _NEW_MsgTypeDef 
+{
+  uint8_t data[8];
+} NEW_MsgTypeDef;
 
 #endif

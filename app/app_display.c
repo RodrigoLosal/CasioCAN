@@ -1,6 +1,6 @@
 /**
  * @file app_display.c
- * @brief Init the LCD and SPI withnstate machine and LDSAFSFSFAFDSDstefwefnd.
+ * @brief Init the LCD and SPI withnstate machine
 */
 
 #include "app_display.h"
@@ -10,8 +10,9 @@
 /**
  * @defgroup Display states
  @{*/
-#define IDLE 1      /*!< State one of clock state machine.*/
-#define TRANSMIT 2  /*!< State two of clock state machine.*/
+#define IDLE        1 /*!< State one of clock state machine.*/
+#define RECEPTION   2 /*!< State two of clock state machine.*/
+#define TRANSMIT    3 /*!< State three of clock state machine.*/
 /**@}*/
 
 /**
@@ -33,6 +34,7 @@ SPI_HandleTypeDef SPI_Handler = {0};
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday);
 static void TimeString(char *string, unsigned char hours, unsigned char minutes, unsigned char seconds);
+static uint32_t Display_Machine(uint32_t currentState);
 
 static char TimeArray[9];
 static char DateArray[16];
@@ -51,7 +53,26 @@ char *TimeArrayPtr = TimeArray;
 extern char *DateArrayPtr;
 char *DateArrayPtr = DateArray;
 
-void Display_Init( void ){
+/**
+ * @brief Struct variable of Queue elements
+*/
+
+QUEUE_HandleTypeDef DisplayQueue = {0};    
+
+/**
+ * @brief Struct variable with the array of Queue
+*/
+
+/* cppcheck-suppress misra-c2012-8.7 ;If header is modified the program will not work*/
+NEW_MsgTypeDef buffer_display[90];  /* cppcheck-suppress misra-c2012-8.4 ;Its been used due to the queue*/
+
+void Display_Init( void ) {
+    DisplayQueue.Buffer = (void*)buffer_display;  /*Indicate the buffer that the tail will use as memory space*/
+    DisplayQueue.Elements = 90u;                  /*Indicate the maximum number of elements that can be stored*/ 
+    DisplayQueue.Size = sizeof( NEW_MsgTypeDef ); /*Indicate the size in bytes of the type of elements to handle*/
+    HIL_QUEUE_Init( &DisplayQueue );              /*Initialize the queue*/
+    HAL_StatusTypeDef Status;
+
     /*Configuration of pins and port with the LCD struc*/
     hLcd.RSTPort = GPIOD;
     hLcd.RSPort = GPIOD;
@@ -78,17 +99,53 @@ void Display_Init( void ){
     SPI_Handler.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLED;
     SPI_Handler.Init.TIMode         = SPI_TIMODE_DISABLED;
 
-    HAL_SPI_Init( &SPI_Handler );
+    /*The function is used and its result is verified.*/
+    Status = HAL_SPI_Init( &SPI_Handler );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, SPI_RET_ERROR );
+
     (void)HEL_LCD_Init(&hLcd);
 }
 
-void Display_Task( void ) {
+
+/**
+* @brief Display task function 
+* This function checks the queue of pending tasks every 100ms and process them calling the display machine   
+*/
+void Display_Task(void) {
+   static uint32_t state = RECEPTION;
+   static uint32_t serialtick =0;
+
+   if ((HAL_GetTick() - serialtick) >= 100u) {
+       serialtick = HAL_GetTick(); 
+       
+        state = Display_Machine(state);
+   }
+}
+
+static uint32_t Display_Machine( uint32_t currentState ) {
     switch(state_lcd){
         case IDLE:
-            if(ClockMsg.msg == (uint8_t)1){
+            /*if(ClockMsg.msg == (uint8_t)1){
                 ClockMsg.msg = 0;
                 state_lcd = TRANSMIT;
+            }*/
+            state_lcd = RECEPTION;
+        break;
+
+        case RECEPTION:
+            /*Revision and unpaked the messages */
+           if( HIL_QUEUE_IsEmptyISR( &DisplayQueue, 0xFF ) == 0u )
+            {
+                /*Read the first message*/
+                (void)HIL_QUEUE_ReadISR( &DisplayQueue, &ClockMsg, 0xFF);
+
+                state_lcd = TRANSMIT;               
             }
+            else 
+            {
+                state_lcd = IDLE;
+            }       
         break;
 
         case TRANSMIT:
@@ -105,6 +162,8 @@ void Display_Task( void ) {
         default:
         break;
     }
+
+    return state_lcd;
 }
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday) {

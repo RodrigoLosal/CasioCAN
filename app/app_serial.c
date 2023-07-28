@@ -13,13 +13,14 @@
   * @defgroup <SerialStates>
   * 
   @{ */
-#define IDLE    1 /*!< First state of the serial state machine.*/
-#define MESSAGE 2 /*!< Second state of the serial state machine.*/
-#define TIME    3 /*!< Third state of the serial state machine.*/
-#define DATE    4 /*!< Fourth state of the serial state machine.*/
-#define ALARM   5 /*!< Fifth state of the serial state machine.*/
-#define ERROR   6 /*!< Sixth state of the serial state machine.*/
-#define OK      7 /*!< Seventh state of the serial state machine.*/
+#define IDLE        1 /*!< First state of the serial state machine.*/
+#define RECEPTION   2 /*!< Second state of the serial state machine.*/
+#define MESSAGE     3 /*!< Third state of the serial state machine.*/
+#define TIME        4 /*!< Fourth state of the serial state machine.*/
+#define DATE        5 /*!< Fifth state of the serial state machine.*/
+#define ALARM       6 /*!< Sixth state of the serial state machine.*/
+#define ERROR       7 /*!< Seventh state of the serial state machine.*/
+#define OK          8 /*!< Eighth state of the serial state machine.*/
 /**
   @} */
 
@@ -51,6 +52,7 @@ static uint8_t DaylightSavingTime( uint8_t *Data );
 static uint8_t AlarmValidaton( uint8_t *Data );
 static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size );
 static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size );
+static uint32_t Serial_Machine(uint32_t currentState);
 
 /**
   * @brief   Structure that will contain the values to initialice the CAN module.
@@ -116,15 +118,33 @@ uint8_t MessageSize     = 0;
  * @brief  Variable that will contain the flag the flag that warns if there is a new message.
  */
 
-extern uint8_t Message;
+//extern uint8_t Message;
 uint8_t Message         = 0;
 
 /**
  * @brief  Variable for the change of the cases of the switch of the state machine.
  */
 
-extern uint8_t State;
-uint8_t State = IDLE;
+//extern uint32_t State;
+//uint32_t State = IDLE;
+
+/**
+ * @brief Struct variable of Queue elements
+*/
+extern QUEUE_HandleTypeDef CanQueue;
+QUEUE_HandleTypeDef CanQueue = {0};
+
+/**
+ * @brief Struct variable with the array of Queue
+*/
+/* cppcheck-suppress misra-c2012-8.7 ;If header is modified the program will not work*/
+NEW_MsgTypeDef buffer_serial[9];  /* cppcheck-suppress misra-c2012-8.4 ;Its been used due to the queue*/
+
+/**
+ * @brief Struct variable with array to save the elements
+*/
+extern NEW_MsgTypeDef RxBuffer;
+NEW_MsgTypeDef RxBuffer = {0};
 
 /**
  * @brief   **Function that initialices the registers of the CAN communication protocol.**
@@ -135,6 +155,13 @@ uint8_t State = IDLE;
 
 void Serial_Init( void )
 {
+    CanQueue.Buffer = (void*)buffer_serial;     /*Indicate the buffer that the tail will use as memory space*/
+    CanQueue.Elements = 9;                     /*Indicate the maximum number of elements that can be stored*/ 
+    CanQueue.Size = sizeof( NEW_MsgTypeDef );   /*Indicate the size in bytes of the type of elements to handle*/ 
+    HIL_QUEUE_Init( &CanQueue );                /*Initialize the queue*/ 
+
+    HAL_StatusTypeDef Status;
+
     CANHandler.Instance                     = FDCAN1;
     CANHandler.Init.Mode                    = FDCAN_MODE_NORMAL;
     CANHandler.Init.FrameFormat             = FDCAN_FRAME_CLASSIC;
@@ -145,7 +172,11 @@ void Serial_Init( void )
     CANHandler.Init.NominalTimeSeg1         = 11;
     CANHandler.Init.NominalTimeSeg2         = 4;
     CANHandler.Init.StdFiltersNbr           = 1;
-    HAL_FDCAN_Init( &CANHandler);
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_Init( &CANHandler);
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
 
     CANTxHeader.IdType      = FDCAN_STANDARD_ID;
     CANTxHeader.FDFormat    = FDCAN_CLASSIC_CAN;
@@ -160,13 +191,37 @@ void Serial_Init( void )
     CANFilter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
     CANFilter.FilterID1    = 0x111;
     CANFilter.FilterID2    = 0x7FF;
-    HAL_FDCAN_ConfigFilter( &CANHandler, &CANFilter );
 
-    HAL_FDCAN_ConfigGlobalFilter( &CANHandler, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE );
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_ConfigFilter( &CANHandler, &CANFilter );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
 
-    HAL_FDCAN_Start( &CANHandler);
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_ConfigGlobalFilter( &CANHandler, FDCAN_REJECT, FDCAN_REJECT, FDCAN_FILTER_REMOTE, FDCAN_FILTER_REMOTE );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
 
-    HAL_FDCAN_ActivateNotification( &CANHandler, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0 );
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_Start( &CANHandler);
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_ActivateNotification( &CANHandler, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0 );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
+}
+
+void Serial_Task(void) {
+   static uint32_t state = RECEPTION;
+   static uint32_t serialtick =0;
+   /* We check the waiting queue with 10ms */
+   if ((HAL_GetTick() - serialtick) >= 10u) {
+       serialtick = HAL_GetTick(); 
+       
+        state = Serial_Machine(state);
+   }
 }
 
 /**
@@ -177,28 +232,50 @@ void Serial_Init( void )
  *
  */
 
-void Serial_Task( void )
+static uint32_t Serial_Machine( uint32_t currentState )
 {
     uint8_t MessageOK    = ( uint8_t ) 0x55;
     uint8_t MessageERROR = ( uint8_t ) 0xAA;
+    uint32_t State;
+
+    State = currentState;
 
     switch( State ) {
         case IDLE:
-            if( CanTp_SingleFrameRx( MessageData, &MessageSize ) == ( uint8_t ) 1 ) {
+            /*if( CanTp_SingleFrameRx( MessageData, &MessageSize ) == ( uint8_t ) 1 ) {
                 State = MESSAGE;
+            }*/
+            State = RECEPTION;
+        break;
+
+        case RECEPTION:
+            /*Revision and unpaked the messages */
+           if( HIL_QUEUE_IsEmptyISR( &CanQueue, TIM16_FDCAN_IT0_IRQn ) == 0 )
+            {
+                /*Read the first message*/
+                (void)HIL_QUEUE_ReadISR( &CanQueue, &RxBuffer, TIM16_FDCAN_IT0_IRQn );
+
+                /*Revision and unpaked the messages */
+                if( CanTp_SingleFrameRx( RxBuffer.data, &MessageSize) == ( uint8_t ) 1 )
+                {
+                    State = MESSAGE;
+                }
+            }else{
+                
+                State = IDLE;
             }
         break;
 
         case MESSAGE:
-            if( MessageData[0] == ( uint8_t ) SERIAL_MSG_TIME ) {
+            if( RxBuffer.data[0] == ( uint8_t ) SERIAL_MSG_TIME ) {
                 DataStorage.msg = SERIAL_MSG_TIME;
                 State = TIME;
             }
-            else if( MessageData[0] == ( uint8_t ) SERIAL_MSG_DATE ) {
+            else if( RxBuffer.data[0] == ( uint8_t ) SERIAL_MSG_DATE ) {
                 DataStorage.msg = SERIAL_MSG_DATE;
                 State = DATE;
             }
-            else if( MessageData[0] == ( uint8_t ) SERIAL_MSG_ALARM ) {
+            else if( RxBuffer.data[0] == ( uint8_t ) SERIAL_MSG_ALARM ) {
                 DataStorage.msg = SERIAL_MSG_ALARM;
                 State = ALARM;
             }
@@ -208,7 +285,10 @@ void Serial_Task( void )
         break;
 
         case TIME:
-            if( TimeValidaton( MessageData ) == ( uint8_t ) 1 ) {
+            if( TimeValidaton( RxBuffer.data ) == ( uint8_t ) 1 ) {
+
+                (void) HIL_QUEUE_WriteISR( &ClockQueue, &DataStorage, 0xFF );
+                
                 State = OK;
             }
             else {
@@ -217,10 +297,14 @@ void Serial_Task( void )
         break;
 
         case DATE:
-            if( DateValidaton( MessageData ) == ( uint8_t ) 1 ) {
-                DataStorage.tm.tm_wday = WeekDay( MessageData );
-                DataStorage.tm.tm_yday = YearDay( MessageData );
-                DataStorage.tm.tm_isdst = DaylightSavingTime( MessageData );
+            if( DateValidaton( RxBuffer.data ) == ( uint8_t ) 1 ) {
+
+                DataStorage.tm.tm_wday = WeekDay( RxBuffer.data );
+                DataStorage.tm.tm_yday = YearDay( RxBuffer.data );
+                DataStorage.tm.tm_isdst = DaylightSavingTime( RxBuffer.data );
+
+                (void) HIL_QUEUE_WriteISR( &ClockQueue, &DataStorage, 0xFF );
+
                 State = OK;
             }
             else {
@@ -229,7 +313,10 @@ void Serial_Task( void )
         break;
 
         case ALARM:
-            if( AlarmValidaton( MessageData ) == ( uint8_t ) 1) {
+            if( AlarmValidaton( RxBuffer.data ) == ( uint8_t ) 1) {
+
+                (void)HIL_QUEUE_WriteISR( &ClockQueue, &DataStorage, 0xFF );
+
                 State = OK;
             }
             else {
@@ -250,6 +337,8 @@ void Serial_Task( void )
         default:
         break;
     }
+
+    return State;
 }
 
 /**
@@ -260,10 +349,17 @@ void Serial_Task( void )
  */
 
 /* cppcheck-suppress misra-c2012-2.7 ; Function defined by the HAL library. */
-void HAL_FDCAN_RxFifo0Callback( FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs )
-{
-  HAL_FDCAN_GetRxMessage( hfdcan, FDCAN_RX_FIFO0, &CANRxHeader, RxData );
-  Message = 1;
+void HAL_FDCAN_RxFifo0Callback( FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs ){
+    HAL_StatusTypeDef Status;
+
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_GetRxMessage( hfdcan, FDCAN_RX_FIFO0, &CANRxHeader, RxData );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
+
+    (void) HIL_QUEUE_WriteISR( &CanQueue, &RxData, TIM16_FDCAN_IT0_IRQn );
+
+    Message = 1;
 }
 
 /**
@@ -301,10 +397,13 @@ static uint8_t TimeValidaton( uint8_t *Data ) {
     uint8_t Seconds = HexToBCD( Data[3] );
 
     if( ( Hours >= ( uint8_t ) 0 ) && ( Hours < ( uint8_t ) 24 ) && ( Minutes >= ( uint8_t ) 0 ) &&  ( Minutes < ( uint8_t ) 60 ) && ( Seconds >= ( uint8_t ) 0 ) && ( Seconds <  ( uint8_t ) 60 ) ) {
+
         DataStorage.tm.tm_hour = Hours;
         DataStorage.tm.tm_min = Minutes;
         DataStorage.tm.tm_sec = Seconds;
+
         Flag = 1;
+
     }
     else {
         Flag = 0;
@@ -614,6 +713,7 @@ static uint8_t AlarmValidaton( uint8_t *Data ) {
  */
 
 static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size ) {
+    HAL_StatusTypeDef Status;
     uint8_t MessageOutput[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
     for( uint8_t i = 0; i < Size; i++ ) {
@@ -623,7 +723,10 @@ static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size ) {
         }
     }
 
-    HAL_FDCAN_AddMessageToTxFifoQ( &CANHandler, &CANTxHeader, MessageOutput );
+    /*The function is used and its result is verified.*/
+    Status = HAL_FDCAN_AddMessageToTxFifoQ( &CANHandler, &CANTxHeader, MessageOutput );
+    /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
+    assert_error( Status == HAL_OK, CAN_RET_ERROR );
 }
 
 /**
@@ -642,7 +745,6 @@ static void CanTp_SingleFrameTx( uint8_t *Data, uint8_t Size ) {
  */
 
 static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size ) {
-    uint8_t CeroCounter = 0;
     uint8_t Flag;
 
     if( Message == ( uint8_t ) 1 ) {
@@ -652,15 +754,9 @@ static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size ) {
 
         for( uint8_t i = 0; i < ( uint8_t ) 7; i++) {
             Data[i] = RxData[i + ( uint8_t ) 1];
-            if ( RxData[i + ( uint8_t ) 1] == ( uint8_t ) 0) {
-                CeroCounter++;
-            }
         }
 
         if( ( *( Size ) < 1 ) || ( *( Size ) > 8 ) ) {
-            Flag = 0;
-        }
-        else if( CeroCounter == ( uint8_t ) 7 ) {
             Flag = 0;
         }
         else {
@@ -670,8 +766,6 @@ static uint8_t CanTp_SingleFrameRx( uint8_t *Data, uint8_t *Size ) {
     else {
         Flag = 0;
     }
-    
-    CeroCounter = 0;
 
     return Flag;
 }
