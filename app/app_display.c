@@ -34,7 +34,7 @@ SPI_HandleTypeDef SPI_Handler = {0};
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday);
 static void TimeString(char *string, unsigned char hours, unsigned char minutes, unsigned char seconds);
-static uint32_t Display_Machine(uint32_t currentState);
+static void Display_Machine( void );
 
 static char TimeArray[9];
 static char DateArray[16];
@@ -113,17 +113,16 @@ void Display_Init( void ) {
 * This function checks the queue of pending tasks every 100ms and process them calling the display machine   
 */
 void Display_Task(void) {
-   static uint32_t state = RECEPTION;
    static uint32_t serialtick =0;
 
    if ((HAL_GetTick() - serialtick) >= 100u) {
        serialtick = HAL_GetTick(); 
        
-        state = Display_Machine(state);
+        Display_Machine();
    }
 }
 
-static uint32_t Display_Machine( uint32_t currentState ) {
+static void Display_Machine( void ) {
     switch(state_lcd){
         case IDLE:
             /*if(ClockMsg.msg == (uint8_t)1){
@@ -162,8 +161,6 @@ static uint32_t Display_Machine( uint32_t currentState ) {
         default:
         break;
     }
-
-    return state_lcd;
 }
 
 static void DateString(char *string, unsigned char month, unsigned char day, unsigned short year, unsigned char weekday) {

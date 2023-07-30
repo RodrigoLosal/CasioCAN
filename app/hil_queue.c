@@ -1,15 +1,15 @@
 /**
  * @file    hil_queue.c
- * @brief   ****
- *
- * Interfaces for LCD driver:
- * 
- * uint8_t HEL_LCD_Init( LCD_HandleTypeDef *hlcd ) : Use once to Initialize the lcd
- * 
+ * @brief   **This file has the functions of the circular buffer.**
  * 
  */
 
 #include "hil_queue.h"
+
+/**
+ * @brief   The function returns a one if the queue is full, 0 otherwise
+ */
+static uint8_t HIL_QUEUE_IsFull( QUEUE_HandleTypeDef *hqueue );
 
 /**
  * @brief   Initializes the queue by setting the head and tail elements to zero, and the values of empty to one and full to zero
@@ -40,7 +40,8 @@ uint8_t HIL_QUEUE_Write( QUEUE_HandleTypeDef *hqueue, void *data )
     }
 
     else{
-        ( void ) memcpy(hqueue->Buffer + (hqueue->Size * hqueue->Tail), data, hqueue->Size);
+        /* cppcheck-suppress misra-c2012-18.4 ; Operation needed for correct functioning. */
+        ( void ) memcpy( hqueue->Buffer + ( hqueue->Size * hqueue->Tail ), data, hqueue->Size );
         hqueue->Tail = (hqueue->Tail + ( uint32_t ) 1) % hqueue->Elements;
         hqueue->SavedElements++;
         
@@ -70,6 +71,7 @@ uint8_t HIL_QUEUE_Read( QUEUE_HandleTypeDef *hqueue, void *data )
     }
 
     else{
+        /* cppcheck-suppress misra-c2012-18.4 ; Operation needed for correct functioning. */
         ( void ) memcpy(data, hqueue->Buffer + (hqueue->Size * hqueue->Head), hqueue->Size);
         hqueue->Head = ( hqueue->Head + ( uint32_t ) 1 ) % hqueue->Elements;
         hqueue->SavedElements--;
@@ -113,7 +115,7 @@ void HIL_QUEUE_Flush( QUEUE_HandleTypeDef *hqueue )
  * @brief   The function returns a one if the queue is full, 0 otherwise
  * @param   hqueue Queue handler
  */
-uint8_t HIL_QUEUE_IsFull( QUEUE_HandleTypeDef *hqueue )
+static uint8_t HIL_QUEUE_IsFull( QUEUE_HandleTypeDef *hqueue )
 {
     return (hqueue->SavedElements == hqueue->Elements);
 }

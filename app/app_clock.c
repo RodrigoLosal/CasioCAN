@@ -43,13 +43,6 @@ extern RTC_TimeTypeDef  sTime;
 RTC_TimeTypeDef         sTime = {0};
 
 /**
-  * @brief Variable to compare the seconds.
-*/ 
-
-extern uint8_t secondsCount;
-uint8_t secondsCount = 60;
-
-/**
   * @brief   Structure that will contain the values to initialice the RTC date values.
   */
 
@@ -184,7 +177,7 @@ static uint32_t Clock_Machine( uint32_t currentState )
 
         case RECEPTION:
             /*Revision and unpaked the messages */
-           if( HIL_QUEUE_IsEmptyISR( &ClockQueue, 0xFF ) == 0 )
+           if( HIL_QUEUE_IsEmptyISR( &ClockQueue, 0xFF ) == ( uint8_t ) 0 )
             {
                 /*Read the first message*/
                 (void)HIL_QUEUE_ReadISR( &ClockQueue, &DataStorage, 0xFF );

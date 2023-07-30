@@ -118,7 +118,7 @@ uint8_t MessageSize     = 0;
  * @brief  Variable that will contain the flag the flag that warns if there is a new message.
  */
 
-//extern uint8_t Message;
+extern uint8_t Message;
 uint8_t Message         = 0;
 
 /**
@@ -156,7 +156,7 @@ NEW_MsgTypeDef RxBuffer = {0};
 void Serial_Init( void )
 {
     CanQueue.Buffer = (void*)buffer_serial;     /*Indicate the buffer that the tail will use as memory space*/
-    CanQueue.Elements = 9;                     /*Indicate the maximum number of elements that can be stored*/ 
+    CanQueue.Elements = QUEUE_ELEMENTS;         /*Indicates the maximum number of elements that can be stored*/ 
     CanQueue.Size = sizeof( NEW_MsgTypeDef );   /*Indicate the size in bytes of the type of elements to handle*/ 
     HIL_QUEUE_Init( &CanQueue );                /*Initialize the queue*/ 
 
@@ -250,7 +250,7 @@ static uint32_t Serial_Machine( uint32_t currentState )
 
         case RECEPTION:
             /*Revision and unpaked the messages */
-           if( HIL_QUEUE_IsEmptyISR( &CanQueue, TIM16_FDCAN_IT0_IRQn ) == 0 )
+           if( HIL_QUEUE_IsEmptyISR( &CanQueue, TIM16_FDCAN_IT0_IRQn ) == ( uint8_t ) 0 )
             {
                 /*Read the first message*/
                 (void)HIL_QUEUE_ReadISR( &CanQueue, &RxBuffer, TIM16_FDCAN_IT0_IRQn );
