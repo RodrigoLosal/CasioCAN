@@ -27,7 +27,10 @@
 
 extern FDCAN_HandleTypeDef  CANHandler;
 
-/*macro to detect erros, wehere if expr is evaluated to false is an error*/
+/**
+ * @brief Macro to garantee that the input parameters or output results of the functions have 
+ * the expected values.
+ @{*/
 #define assert_error(expr, error)         ((expr) ? (void)0U : Safe_State((uint8_t *)__FILE__, __LINE__, (error)))
 
 extern void Safe_State(uint8_t *file, uint32_t line, uint8_t error);
@@ -103,13 +106,16 @@ extern APP_MsgTypeDef   DataStorage;
 extern APP_Messages     MessageType;
 
 /**
-  * @brief  Struct variable of memeberst to transmit to LCD 
+  * @brief  Structure type variable of memebers to transmit to the LCD.
   */
 extern APP_MsgTypeDef ClockMsg;
 
+/**
+  * @brief  Structure type variable to save the received messages for the circular buffer.
+  */
 typedef struct _NEW_MsgTypeDef 
 {
-  uint8_t data[8];
+  uint8_t data[8]; /*!< Array where the received messages will be saved.*/
 } NEW_MsgTypeDef;
 
 #endif

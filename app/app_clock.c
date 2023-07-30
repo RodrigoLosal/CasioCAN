@@ -9,8 +9,8 @@
 #include "app_clock.h"
 
 /** 
-  * @defgroup ClockStates
-  @{ */
+  * @defgroup Clock States.
+  @{*/
 #define IDLE        0 /*!< First state of the clock states.*/
 #define RECEPTION   1 /*!< Second state of the clock states.*/
 #define ALARM       2 /*!< Third state of the clock states.*/
@@ -18,8 +18,7 @@
 #define TIME        4 /*!< Fifth state of the clock states.*/
 #define CLEAR       5 /*!< Sixth state of the clock states.*/
 #define MESSAGE     6 /*!< Seventh state of the clock states.*/
-/**
-  @} */
+/**@}*/
 
 static void SaveTime( void );
 static void SaveDate( void );

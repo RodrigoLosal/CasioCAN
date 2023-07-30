@@ -9,10 +9,19 @@
 
     #include "app_bsp.h"
 
-    #define     QUEUE_OK            0
-    #define     QUEUE_NOT_OK        1
-    #define     QUEUE_ELEMENTS      9
+    /** 
+     * @defgroup <Definition of the possible queue results & number of elements.>
+     * 
+     @{ */
+    #define     QUEUE_OK            0   /*!< Queue worked correctly.*/
+    #define     QUEUE_NOT_OK        1   /*!< Queue didn't work correctly.*/
+    #define     QUEUE_ELEMENTS      9   /*!< Number of possible messages to save in determined timing.*/
+    /**
+     @} */
 
+    /**
+     * @brief Structure with the elements of the circular buffer.
+    */
     typedef struct
     {
         void        *Buffer;        /**< Pointer to the memory space used as buffer by the queue.        */
