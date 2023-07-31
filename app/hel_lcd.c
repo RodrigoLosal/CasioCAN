@@ -14,6 +14,44 @@
 #define LCD_TOGGLE 2    /*!< State 2 toggle state*/
 /**@} */
 
+/*cppcheck-suppress misra-c2012-8.4 ; Function provided by the HAL library.*/
+/**
+ * @brief Ports and Pins configuration for the LCD.
+ */
+
+/*cppcheck-suppress misra-c2012-8.7 ; Function is necessary to declare with weak*/
+/**
+ * @brief Configuration Ports and Pins of LCD
+ * @param[in] hlcd LCD Handler
+ */
+__weak void HEL_LCD_MspInit( LCD_HandleTypeDef *hlcd ){
+    /*CS = GPIO_PIN_3, RST = GPIO_PIN_2, RS = GPIO_PIN_4*/
+    GPIO_InitTypeDef GPIO_Init;  /*Gpios initial structure*/
+    
+    __HAL_RCC_GPIOD_CLK_ENABLE( ); /* Enable port D clock */
+    __HAL_RCC_GPIOB_CLK_ENABLE( ); /* Enable port B clock */
+
+    GPIO_Init.Pin   = hlcd->CSPin|hlcd->RSTPin|hlcd->RSPin; /*Pins configuration*/
+    GPIO_Init.Mode  = GPIO_MODE_OUTPUT_PP;                  /*Push-pull output*/
+    GPIO_Init.Pull  = GPIO_NOPULL;                          /*Pin without pull-up or pull-down*/
+    GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW;                  /*Pin to low frecuency*/
+    /*Initialize pins with the previous parameters*/
+    HAL_GPIO_Init( hlcd->RSTPort, &GPIO_Init );
+    HAL_GPIO_Init( hlcd->CSPort, &GPIO_Init );
+    HAL_GPIO_Init( hlcd->RSPort, &GPIO_Init);
+
+    GPIO_Init.Pin   = hlcd->BKLPin;         /*Pins configuration*/
+    GPIO_Init.Mode  = GPIO_MODE_OUTPUT_PP;  /*Push-pull output*/
+    GPIO_Init.Pull  = GPIO_NOPULL;          /*Pin without pull-up or pull-down*/
+    GPIO_Init.Speed = GPIO_SPEED_FREQ_LOW;  /*Pin to low frecuency*/
+    /*Initialize pins with the previous parameters*/
+    HAL_GPIO_Init( hlcd->BKLPort, &GPIO_Init );
+
+    /* Apply the configuration to spi 1 but before we make sure that the slave is disabled pin D3 in alt*/
+    HAL_GPIO_WritePin( hlcd->CSPort, hlcd->CSPin, SET );
+    HAL_GPIO_WritePin( hlcd->BKLPort, hlcd->BKLPin, SET );
+}
+
 uint8_t HEL_LCD_Init( LCD_HandleTypeDef *hlcd ){
     assert_error( (hlcd->CSPort == GPIOD), LCD_PAR_ERROR );      /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
     assert_error( (hlcd->RSTPort == GPIOD), LCD_PAR_ERROR );     /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/

@@ -125,10 +125,6 @@ void Display_Task(void) {
 static void Display_Machine( void ) {
     switch(state_lcd){
         case IDLE:
-            /*if(ClockMsg.msg == (uint8_t)1){
-                ClockMsg.msg = 0;
-                state_lcd = TRANSMIT;
-            }*/
             state_lcd = RECEPTION;
         break;
 

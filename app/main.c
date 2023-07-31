@@ -58,8 +58,8 @@ int main( void )
 
     Serial_Init();
     Clock_Init();
-    LED_Init();
     Display_Init();
+    LED_Init();
     //Dog_Init();
 
     while( 1 )
@@ -117,15 +117,17 @@ static void Dog_Init( void ) {
     __HAL_RCC_WWDG_CLK_ENABLE();
 
     WDGHandler.Instance = WWDG;
-    WDGHandler.Init.Prescaler = WWDG_PRESCALER_128;
-    WDGHandler.Init.Window = 110;
+    WDGHandler.Init.Prescaler = WWDG_PRESCALER_16;
+    WDGHandler.Init.Window = 94;
     WDGHandler.Init.Counter = 127;
-    WDGHandler.Init.EWIMode = WWDG_EWI_DISABLE;
+    WDGHandler.Init.EWIMode = WWDG_EWI_ENABLE;
 
     /*The function is used and its result is verified.*/
     Status = HAL_WWDG_Init( &WDGHandler );
     /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
     assert_error( Status == HAL_OK, WWDG_RET_ERROR );
+    HAL_NVIC_SetPriority( WWDG_IRQn, 2, 0);
+    HAL_NVIC_EnableIRQ( WWDG_IRQn );
 }
 
 /**
@@ -151,7 +153,7 @@ static void Heart_Beat( void ) {
 static void Pet_The_Dog( void ) {
     HAL_StatusTypeDef Status;
     
-    if( (HAL_GetTick() - TickStartWDog) >= 280u ) {
+    if( (HAL_GetTick() - TickStartWDog) >= 75u ) {
         TickStartWDog = HAL_GetTick();
 
         /*The function is used and its result is verified.*/
@@ -212,4 +214,15 @@ void Safe_State( uint8_t *file, uint32_t line, uint8_t error ) {
     while( 1 ) {
         /*Waiting for the user to press the reset button*/
     }
+}
+
+/*cppcheck-suppress misra-c2012-8.4 ; Function provided by Hal.*/
+/**
+ * @brief WWDG interrupt.
+ * @param[in] hwddg
+ */
+void HAL_WWDG_EarlyWakeupCallback(WWDG_HandleTypeDef *hwddg)
+{
+    (void)hwddg;
+    assert_error(0u, WWDG_FUNC_ERROR); /*cppcheck-suppress misra-c2012-11.8 ; Function can not be modify*/
 }

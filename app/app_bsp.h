@@ -56,7 +56,8 @@ typedef enum _App_ErrorsCode {
     LCD_PAR_ERROR,              /*!< LCD ERROR      13*/
     SPI_FUNC_ERROR,             /*!< LCD ERROR      14*/
     WWDG_FUNC_ERROR,            /*!< LCD ERROR      15*/
-    ECC_FUNC_ERROR              /*!< LCD ERROR      16*/
+    ECC_FUNC_ERROR,              /*!< LCD ERROR      16*/
+    FLASH_FUNC_ERROR            /*!< FLASH ERROR    17*/
 } 
 /*cppcheck-suppress misra-c2012-2.3 ; Macro required for functional safety.*/
 App_ErrorsCode;
