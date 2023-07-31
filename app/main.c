@@ -13,6 +13,14 @@
 #include "app_serial.h"
 #include "app_clock.h"
 #include "app_display.h"
+#include "scheduler.h"
+
+/**
+ * @defgroup Tasks & tick time (ms) for the functioning of the scheduler.
+ @{*/
+#define TASKS_N     5       /*!< Specifies the number of tasks.*/
+#define TICK_VAL    10      /*!< Value of the tick.*/
+/**@} */
 
 static void LED_Init( void );
 static void Dog_Init( void );
@@ -22,9 +30,7 @@ static void Pet_The_Dog( void );
 /**
   * @brief   Structure that will contain the values to initialice the Watchdog Timer.
   */
-
-extern WWDG_HandleTypeDef WDGHandler;
-WWDG_HandleTypeDef WDGHandler = {0};
+ WWDG_HandleTypeDef WDGHandler = {0};
 
 /**
  * @brief  Global variable for the Heartbeat function time counter.
@@ -50,26 +56,29 @@ uint32_t TickStartWDog = 0;
 int main( void )
 {
     HAL_StatusTypeDef Status;
+    static Task_TypeDef tasks[ TASKS_N ];
+    static Scheduler_HandleTypeDef Sche;
 
     /*The function is used and its result is verified.*/
     Status = HAL_Init();
     /*cppcheck-suppress misra-c2012-11.8 ; Macro required for functional safety.*/
     assert_error( Status == HAL_OK, HAL_RET_ERROR );
 
-    Serial_Init();
-    Clock_Init();
-    Display_Init();
-    LED_Init();
-    //Dog_Init();
+    /*Initialice the scheduler with the number of tasks and the value of the time tick.*/
+    Sche.tick = TICK_VAL;
+    Sche.tasks = TASKS_N;
+    Sche.taskPtr = tasks;
+    HIL_SCHEDULER_Init( &Sche );
 
-    while( 1 )
-    {
-        Serial_Task();
-        Clock_Task();
-        Display_Task();
-        Heart_Beat();
-        //Pet_The_Dog();
-    }
+    /*Register tasks with thier corresponding init fucntions and their periodicyt*/
+    ( void )HIL_SCHEDULER_RegisterTask( &Sche, LED_Init, Heart_Beat, 300 );
+    ( void )HIL_SCHEDULER_RegisterTask( &Sche, Serial_Init, Serial_Task, 10 );
+    ( void )HIL_SCHEDULER_RegisterTask( &Sche, Clock_Init, Clock_Task, 50 );
+    ( void )HIL_SCHEDULER_RegisterTask( &Sche, Display_Init, Display_Task, 100 );
+    ( void )HIL_SCHEDULER_RegisterTask( &Sche, Dog_Init, Pet_The_Dog, 75 );
+        
+    /*Run the scheduler in a infinite loop*/
+    HIL_SCHEDULER_Start( &Sche );
 }
 
 /**
@@ -100,15 +109,15 @@ static void LED_Init( void ) {
  * The Watchdog will operate in the Windowed configuration, with the following calculations to support
  * the chosen parameters:
  * 
- * Clock Cycle Time: 1 / ( ( APB = 32MHz ) / 4096 ) / 128 = 16384 us = 16.384 ms
+ * Clock Cycle Time: 1 / ( ( APB = 32MHz ) / 4096 ) / 128 = 2048 us = 2.048 ms
  * Timout:
- * tWWDG = ( 1 / ( 32MHz / 4096 ) / 128 ) * ( 127 + 1 ) = 2.0972 s
+ * tWWDG = ( 1 / ( 32MHz / 4096 ) / 16 ) * ( 127 + 1 ) = 0.2622 s = 262.2 ms
  * With Window value of 94:
- * tWWDG = ( 1 / ( 32MHz / 4096 ) / 128 ) * ( 97 + 1 ) = 1.8186 s
+ * tWWDG = ( 1 / ( 32MHz / 4096 ) / 16 ) * ( 94 + 1 ) = 0.1946 s = 194.6 ms
  * Difference:
- * 524.29 ms  - 401.41 ms = 278.6 ms
+ * 262.2 ms  - 194.6 ms = 67.6 ms --> Refresh > 67.6 ms ∴ 75 ms proposed.
  *
- * @param   WDGHandler[out] Struct-type variable to save the configuration of the Watchdog registers.
+ * @param   WDGHandler[out] Structure-type variable to save the configuration of the Watchdog registers.
  *
  */
 static void Dog_Init( void ) {
@@ -216,13 +225,13 @@ void Safe_State( uint8_t *file, uint32_t line, uint8_t error ) {
     }
 }
 
-/*cppcheck-suppress misra-c2012-8.4 ; Function provided by Hal.*/
 /**
  * @brief WWDG interrupt.
  * @param[in] hwddg
  */
+/*cppcheck-suppress misra-c2012-8.4 ; Function provided by Hal.*/
 void HAL_WWDG_EarlyWakeupCallback(WWDG_HandleTypeDef *hwddg)
 {
     (void)hwddg;
-    assert_error(0u, WWDG_FUNC_ERROR); /*cppcheck-suppress misra-c2012-11.8 ; Function can not be modify*/
+    assert_error(0u, WWDG_FUNC_ERROR); /*cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
 }

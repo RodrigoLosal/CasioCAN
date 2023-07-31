@@ -10,11 +10,6 @@ extern void PendSV_Handler( void );
 extern void SysTick_Handler( void );
 extern void TIM16_FDCAN_IT0_IRQHandler( void );
 
-/**
- * @brief Reference to WWDG control structure handler
- */
-extern WWDG_HandleTypeDef WDGHandler; 
-
 /*cppcheck-suppress misra-c2012-8.4 ; Function provide by Hal*/
 /**
  * @brief Declare CAN interrupt

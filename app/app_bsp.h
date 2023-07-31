@@ -22,8 +22,11 @@
     #include "stm32g0xx_hal_spi.h"
     #include "stm32g0xx_hal_spi_ex.h"
     #include "hil_queue.h"
+    #include "scheduler.h"
     #include <stdint.h>
     #include <string.h>
+
+extern WWDG_HandleTypeDef WDGHandler;
 
 extern FDCAN_HandleTypeDef  CANHandler;
 
@@ -41,23 +44,24 @@ extern void Safe_State(uint8_t *file, uint32_t line, uint8_t error);
 
 /*cppcheck-suppress misra-c2012-2.4 ; Enum used for functional safety.*/
 typedef enum _App_ErrorsCode {
-    WWDG_RET_ERROR = 1U,        /*!< WDG ERROR      1*/
-    PWR_RET_ERROR,              /*!< PWR ERROR      2*/
-    RCC_RET_ERROR,              /*!< RCC ERROR      3*/
-    HARDFAULT_RET_ERROR,        /*!< HFAULT ERROR   4*/
-    ECC_RET_ERROR,              /*!< ECC ERROR      5*/
-    CAN_RET_ERROR,              /*!< CAN ERROR      6*/
-    RTC_RET_ERROR,              /*!< RTC ERROR      7*/
-    SPI_RET_ERROR,              /*!< SPI ERROR      8*/
-    LCD_RET_ERROR,              /*!< LCD ERROR      9*/
-    HAL_RET_ERROR,              /*!< HAL ERROR      10*/
-    CAN_FUNC_ERROR,             /*!< CAN F ERROR    11*/
-    HARDFAULT_FUNC_ERROR,       /*!< HFAULT ERROR   12*/
-    LCD_PAR_ERROR,              /*!< LCD ERROR      13*/
-    SPI_FUNC_ERROR,             /*!< LCD ERROR      14*/
-    WWDG_FUNC_ERROR,            /*!< LCD ERROR      15*/
-    ECC_FUNC_ERROR,              /*!< LCD ERROR      16*/
-    FLASH_FUNC_ERROR            /*!< FLASH ERROR    17*/
+    WWDG_RET_ERROR = 1U,        /*!< WDG ERROR           1*/
+    PWR_RET_ERROR,              /*!< PWR ERROR           2*/
+    RCC_RET_ERROR,              /*!< RCC ERROR           3*/
+    HARDFAULT_RET_ERROR,        /*!< HFAULT ERROR        4*/
+    ECC_RET_ERROR,              /*!< ECC ERROR           5*/
+    CAN_RET_ERROR,              /*!< CAN ERROR           6*/
+    RTC_RET_ERROR,              /*!< RTC ERROR           7*/
+    SPI_RET_ERROR,              /*!< SPI ERROR           8*/
+    LCD_RET_ERROR,              /*!< LCD ERROR           9*/
+    HAL_RET_ERROR,              /*!< HAL ERROR          10*/
+    CAN_FUNC_ERROR,             /*!< CAN F ERROR        11*/
+    HARDFAULT_FUNC_ERROR,       /*!< HFAULT ERROR       12*/
+    LCD_PAR_ERROR,              /*!< LCD ERROR          13*/
+    SPI_FUNC_ERROR,             /*!< LCD ERROR          14*/
+    WWDG_FUNC_ERROR,            /*!< LCD ERROR          15*/
+    ECC_FUNC_ERROR,             /*!< LCD ERROR          16*/
+    FLASH_FUNC_ERROR,           /*!< FLASH ERROR        17*/
+    SCHEDULER_PAR_ERROR         /*!< SCHEDULER ERROR    18*/
 } 
 /*cppcheck-suppress misra-c2012-2.3 ; Macro required for functional safety.*/
 App_ErrorsCode;
