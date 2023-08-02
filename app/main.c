@@ -15,13 +15,6 @@
 #include "app_display.h"
 #include "scheduler.h"
 
-/**
- * @defgroup Tasks & tick time (ms) for the functioning of the scheduler.
- @{*/
-#define TASKS_N     5       /*!< Specifies the number of tasks.*/
-#define TICK_VAL    10      /*!< Value of the tick.*/
-/**@} */
-
 static void LED_Init( void );
 static void Dog_Init( void );
 static void Heart_Beat( void );
