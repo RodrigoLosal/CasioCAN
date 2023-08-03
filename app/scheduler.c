@@ -171,7 +171,6 @@ void HIL_SCHEDULER_Start( Scheduler_HandleTypeDef *hscheduler )
     uint32_t Deviation;
     uint32_t UpperLimit;
     uint32_t LowerLimit;
-    //uint8_t RangeOKFlag;
 
     uint32_t tickstart = HAL_GetTick();
 
