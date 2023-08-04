@@ -50,6 +50,7 @@ int main( void )
 {
     HAL_StatusTypeDef Status;
     static Task_TypeDef tasks[ TASKS_N ];
+    static Timer_TypeDef timers[ TIMERS_N ];
     static Scheduler_HandleTypeDef Sche;
 
     /*The function is used and its result is verified.*/
@@ -61,6 +62,8 @@ int main( void )
     Sche.tick = TICK_VAL;
     Sche.tasks = TASKS_N;
     Sche.taskPtr = tasks;
+    Sche.timers = TIMERS_N;
+    Sche.timerPtr = timers;
     HIL_SCHEDULER_Init( &Sche );
 
     /*Register tasks with thier corresponding init fucntions and their periodicyt*/

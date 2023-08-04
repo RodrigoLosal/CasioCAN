@@ -27,9 +27,10 @@
     #include <string.h>
 
 /**
- * @defgroup Tasks & tick time (ms) for the functioning of the scheduler.
+ * @defgroup Tasks, timers & tick time (ms) for the functioning of the scheduler.
  @{*/
 #define TASKS_N     5       /*!< Specifies the number of tasks.*/
+#define TIMERS_N    1       /*!< Specifies the number of timers.*/
 #define TICK_VAL    10      /*!< Value of the tick.*/
 /**@} */
 
@@ -69,7 +70,8 @@ typedef enum _App_ErrorsCode {
     ECC_FUNC_ERROR,             /*!< LCD ERROR            16*/
     FLASH_FUNC_ERROR,           /*!< FLASH ERROR          17*/
     SCHEDULER_PAR_ERROR,        /*!< SCHEDULER ERROR      18*/
-    SCHEDULER_TASK_ERROR        /*!< SCHEDULER TASK ERROR 19*/
+    SCHEDULER_TASK_ERROR,       /*!< SCHEDULER TASK ERROR 19*/
+    TIMER_PAR_ERROR             /*!< TIMER ERROR          20*/
 } 
 /*cppcheck-suppress misra-c2012-2.3 ; Macro required for functional safety.*/
 App_ErrorsCode;

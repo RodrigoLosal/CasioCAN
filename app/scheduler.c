@@ -189,6 +189,18 @@ void HIL_SCHEDULER_Start( Scheduler_HandleTypeDef *hscheduler )
         {
             tickstart = HAL_GetTick();
 
+            for ( uint32_t i = 0; i < hscheduler->timers; i++ )
+            { 
+                if( ( hscheduler->timerPtr[i].StartFlag ) && ( hscheduler->timerPtr[i].callbackPtr !=NULL ) )
+                {   
+                    hscheduler->timerPtr[i].Count -=  hscheduler->tick;
+                    if( hscheduler->timerPtr[i].Count == 0u )
+                    {
+                        hscheduler->timerPtr[i].callbackPtr();
+                    }
+                }
+            }
+
             for ( uint32_t i = 0; i < hscheduler->tasksCount; i++ )
             {
                 if( hscheduler->taskPtr[i].taskFunc != NULL )
@@ -215,4 +227,137 @@ void HIL_SCHEDULER_Start( Scheduler_HandleTypeDef *hscheduler )
 
         }
     }
+}
+
+/**
+ * @brief Function to register a new Timer.
+ * 
+ * @param[in] hscheduler
+ * @param[in] Timeout
+ * @param[in] CallbackPtr
+*/
+uint8_t HIL_SCHEDULER_RegisterTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timeout, void (*CallbackPtr)(void) )
+{
+    assert_error( hscheduler->tasks    != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->tick     != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->taskPtr  != NULL, SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timers   != 0UL,  TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timerPtr != NULL, TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    uint8_t TimerID = 0;
+    
+    if ( ( Timeout >= hscheduler->tick ) && ( ( Timeout % hscheduler->tick ) == ( uint32_t ) 0 ) ) {
+
+        hscheduler->timerPtr[hscheduler->timers].Timeout = Timeout;
+        hscheduler->timerPtr[hscheduler->timers].Count = Timeout;
+        hscheduler->timerPtr[hscheduler->timers].StartFlag = 0;
+        hscheduler->timerPtr[hscheduler->timers].callbackPtr = CallbackPtr;
+
+        hscheduler->timers++;
+
+        TimerID = hscheduler->timers;
+    }
+
+    return TimerID;
+}
+
+/**
+ * @brief Function to read the Timer count.
+ * 
+ * @param[in] hscheduler
+ * @param[in] Timer
+*/
+uint32_t HIL_SCHEDULER_GetTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer )
+{
+    assert_error( hscheduler->tasks    != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->tick     != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->taskPtr  != NULL, SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timers   != 0UL,  TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timerPtr != NULL, TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    
+    uint32_t CounterReading = 0;
+    
+    if ( ( Timer > ( uint32_t ) 0 ) && ( Timer <= hscheduler->timers ) )
+    {
+        CounterReading = hscheduler->timerPtr[Timer - ( uint32_t ) 1].Count;
+    }
+
+    return CounterReading;
+}
+
+/**
+ * @brief Function to set the Timer at it's maximum value.
+ *
+ * @param[in] hscheduler
+ * @param[in] Timer
+ * @param[in] Timeout
+*/
+uint8_t HIL_SCHEDULER_ReloadTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer, uint32_t Timeout )
+{
+    assert_error( hscheduler->tasks    != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->tick     != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->taskPtr  != NULL, SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timers   != 0UL,  TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timerPtr != NULL, TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    
+    uint8_t SuccessFlag = 0;
+    
+    if ( ( Timer > ( uint32_t ) 0 ) &&  ( Timer <= hscheduler->timers ) )
+    {
+        hscheduler->timerPtr[Timer - ( uint32_t ) 1].Timeout = Timeout;
+        hscheduler->timerPtr[Timer - ( uint32_t ) 1].Count = Timeout;
+        
+        SuccessFlag = 1;
+    }
+
+    return SuccessFlag;
+}
+
+/**
+ * @brief Function to make the Timer start counting.
+ * 
+ * @param[in] hscheduler
+ * @param[in] Timer
+*/
+uint8_t HIL_SCHEDULER_StartTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer )
+{
+    assert_error( hscheduler->tasks    != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->tick     != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->taskPtr  != NULL, SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timers   != 0UL,  TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timerPtr != NULL, TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    
+    uint8_t SuccessFlag = 0;
+    
+    if ( ( Timer > ( uint32_t ) 0 ) && ( hscheduler->timers >= (uint32_t) 1 ) )
+    {
+        hscheduler->timerPtr[Timer - ( uint32_t ) 1].StartFlag = ( uint32_t ) 1;
+        SuccessFlag = 1;
+    }
+
+    return SuccessFlag;
+}
+
+/**
+ * @brief Function to make the Timer stop counting.
+ * 
+ * @param[in] hscheduler
+ * @param[in] Timer
+*/
+uint8_t HIL_SCHEDULER_StopTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer )
+{
+    assert_error( hscheduler->tasks    != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->tick     != 0UL,  SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->taskPtr  != NULL, SCHEDULER_PAR_ERROR );             /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timers   != 0UL,  TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    assert_error( hscheduler->timerPtr != NULL, TIMER_PAR_ERROR );                 /* cppcheck-suppress misra-c2012-11.8 ; Function can't be modified.*/
+    
+    uint8_t SuccessFlag = 0;
+    
+    if ( ( Timer > ( uint32_t ) 0 ) && ( hscheduler->timers >= ( uint32_t ) 1 ) )
+    {
+        hscheduler->timerPtr[Timer - ( uint32_t ) 1].StartFlag = 0;
+        SuccessFlag = 1;
+    }
+
+    return SuccessFlag;
 }

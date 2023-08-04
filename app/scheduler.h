@@ -9,6 +9,17 @@
 #include "app_bsp.h"
 
 /**
+ * @brief Structure with the elements of the Software Timer.
+*/
+typedef struct _Timer_TypeDef
+{
+    uint32_t Timeout;           /*!< timer timeout to decrement and reload when the timer is re-started */
+    uint32_t Count;             /*!< actual timer decrement count */
+    uint32_t StartFlag;         /*!< flag to start timer count */
+    void(*callbackPtr)(void);   /*!< pointer to callback function function */
+} Timer_TypeDef;
+
+/**
  * @brief Structure with the TCB elements.
 */
 typedef struct _task
@@ -29,8 +40,9 @@ typedef struct _scheduler
     uint32_t tick;          /*!<the time base in ms*/
     uint32_t tasksCount;    /*!<internal task counter*/
     Task_TypeDef *taskPtr;  /*!<Pointer to buffer for the TCB tasks*/
-
-}Scheduler_HandleTypeDef;
+    uint32_t timers;         /*!<number of software timer to use*/
+    Timer_TypeDef *timerPtr; /*!<Pointer to buffer timer array*/
+} Scheduler_HandleTypeDef;
 
 /**
  * @brief Function to INITIALIZE the task 
@@ -67,5 +79,35 @@ uint8_t HIL_SCHEDULER_PeriodTask( Scheduler_HandleTypeDef *hscheduler, uint32_t 
  * Run the different tasks that have been registered
 */
 void HIL_SCHEDULER_Start( Scheduler_HandleTypeDef *hscheduler );
+
+/**
+ * @brief Function to register a new Timer.
+ * 
+*/
+uint8_t HIL_SCHEDULER_RegisterTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timeout, void (*CallbackPtr)(void) );
+
+/**
+ * @brief Function to read the Timer count.
+ * 
+*/
+uint32_t HIL_SCHEDULER_GetTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer );
+
+/**
+ * @brief Function to set the Timer at it's maximum value.
+ * 
+*/
+uint8_t HIL_SCHEDULER_ReloadTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer, uint32_t Timeout );
+
+/**
+ * @brief Function to make the Timer start counting.
+ * 
+*/
+uint8_t HIL_SCHEDULER_StartTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer );
+
+/**
+ * @brief Function to make the Timer stop counting.
+ * 
+*/
+uint8_t HIL_SCHEDULER_StopTimer( Scheduler_HandleTypeDef *hscheduler, uint32_t Timer );
 
 #endif
